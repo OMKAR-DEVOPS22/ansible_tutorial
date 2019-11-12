@@ -4,15 +4,12 @@
   tasks:
   - name: Gather the package facts
     package_facts: 
-      manager: auto
-  - name: Packages list
-    debug:
-      msg: "{{ inventory_hostname }}, {{ ansible_facts.packages }}."
+      manager: apt
   - name: Curl is not installed
     debug:
       msg: "{{ inventory_hostname }}, Curl not installed."
     when: "'curl' not in ansible_facts.packages"
-  - name: Curl is  installed
+  - name: Curl is installed
     debug: 
-      msg: "{{ inventory_hostname }}, {{ ansible_facts.packages['curl'] | length }}"
+      msg: "{{ inventory_hostname }}, {{ ansible_facts.packages['curl'] }}"
     when: "'curl' in ansible_facts.packages"
