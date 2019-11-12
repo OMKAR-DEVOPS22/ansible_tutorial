@@ -1,0 +1,28 @@
+---
+- hosts: mysql_servers
+  gather_facts: false
+  tasks:
+  - name: Download file from repo
+    get_url:
+      url: http://10.15.15.86:8080/toconfig/list_mysql_users.sh
+      dest: /tmp/list_mysql_users.sh
+      mode: '0755'
+
+  - name: Run script
+    command: bash /tmp/list_mysql_users.sh
+    args:
+      chdir: /tmp/
+    register: script_output
+
+  - name: Fetch file from remote server
+    fetch: 
+      src: /tmp/mysql_all_users_sql.csv
+      dest: list/mysql_users_-{{ inventory_hostname }}.sql
+      flat: yes
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ script_output }}"
+      path: /root/ansible-files/mysql_output.txt 
+      create: yes
+

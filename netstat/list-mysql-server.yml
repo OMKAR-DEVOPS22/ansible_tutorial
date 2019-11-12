@@ -1,0 +1,27 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: get list of listening ports
+    shell: netstat -tunlp | grep mysql
+    args: 
+      executable: /bin/bash
+    register: output
+    #ignore_errors: True
+  - name: Put in database
+    uri:
+      url: http://10.15.15.86:2379/v2/keys/srv/{{ inventory_hostname }}
+      method: PUT
+      body: "value={{ output.stdout_lines }}&ttl=3600"
+      status_code: 201
+      return_content: yes
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+    register: curl_out
+    ignore_errors: True
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ output.stdout_lines }}"
+      path: /root/ansible-files/portlist.txt 
+      create: yes
+
