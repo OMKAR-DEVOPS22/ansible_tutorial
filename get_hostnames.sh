@@ -14,5 +14,5 @@
 
 cd /root/ansible-files
 
-ansible-playbook hostname.yml > /tmp/ansible-output.txt 2> /tmp/ansible-error.txt
+ansible-playbook get-hostname/hostname.yml > /tmp/ansible-output.txt 2> /tmp/ansible-error.txt
 exit 0
