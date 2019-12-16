@@ -1,0 +1,14 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Download file from repo
+    get_url:
+      url: http://10.15.15.86:8080/toconfig/login_notify/login_notify.sh
+      dest: /etc/profile.d/login_notify.sh
+      mode: '0755'
+      force: yes
+  - name: Delete old login file
+    file:
+      path: /etc/profile.d/notify_log.sh
+      state: absent
