@@ -7,7 +7,7 @@
       manager: apt
   - name: Put in database if mongodb-org is installed
     uri:
-      url: http://10.15.15.86:2379/v2/keys/hostnames/{{ inventory_hostname }}
+      url: http://10.15.15.86:2379/v2/keys/mongo-ver/{{ inventory_hostname }}
       method: PUT
       body: "value={{ ansible_facts.packages['mongodb-org'][0]['version'] }}&ttl=28800"
       status_code: 201
