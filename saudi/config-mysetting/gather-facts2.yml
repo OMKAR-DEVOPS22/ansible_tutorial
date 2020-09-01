@@ -1,0 +1,54 @@
+---
+- hosts: all
+  gather_facts: true
+  tasks:
+  - name: Check mysql limits
+    shell: systemctl show mysql | grep Limit
+    args:
+      chdir: /tmp/
+      executable: /bin/bash
+    register: script_output
+  - name: Check tomcat limits
+    shell: systemctl show tomcat | grep Limit
+    args:
+      chdir: /tmp/
+      executable: /bin/bash
+    register: tomcat_output
+  - name: Check mysql version
+    shell: mysql -V
+    args:
+      chdir: /tmp/
+      executable: /bin/bash
+    register: mysql_version
+  - name: Check listenport range
+    shell: sysctl net.ipv4.ip_local_port_range
+    args:
+      chdir: /tmp/
+      executable: /bin/bash
+    register: sysctl_out
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}  CPU=[
+        processor_cores= {{ ansible_facts['processor_cores'] }}, 
+        processor_count= {{ ansible_facts['processor_count'] }}, 
+        processor_vcpus= {{ ansible_facts['processor_vcpus'] }} ] 
+        RAM=[ total_mb={{ ansible_facts['memtotal_mb'] }} ]
+        mysql=[
+        {{ script_output.stdout_lines[13] }}, {{ script_output.stdout_lines[14] }}, 
+        {{ script_output.stdout_lines[17] }}, {{ script_output.stdout_lines[18] }} ],
+        mysql_version= [{{ mysql_version.stdout_lines[0] }}],
+        LocalPortRange= [{{ sysctl_out.stdout_lines[0] }}],
+        tomcat=[
+        {{ tomcat_output.stdout_lines[13] }}, {{ tomcat_output.stdout_lines[14] }}, 
+        {{ tomcat_output.stdout_lines[17] }}, {{ tomcat_output.stdout_lines[18] }} ]"
+      path: /root/facts/factsout.txt 
+      create: yes
+      
+
+#ansible_facts.
+#ansible_memory_mb
+#memory_mb={{ ansible_facts['memory_mb'] }}
+#ansible_processor_cores
+#ansible_processor_count
+#ansible_processor_vcpus
+#ansible_facts

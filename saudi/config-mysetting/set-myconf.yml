@@ -1,0 +1,92 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+# --------------------------------------
+# Update sysctl conf 
+# --------------------------------------
+  - name: update sysctl
+    sysctl:
+      name: "{{ item.name }}"
+      value: "{{ item.value }}"
+      sysctl_set: yes
+      state: present
+      reload: yes
+    with_items:
+      - { name: 'net.ipv4.ip_local_port_range', value: '1024 65000' }
+      - { name: 'net.ipv4.tcp_max_syn_backlog', value: 16384 }
+# --------------------------------------
+# Change mysql service file and limits
+# --------------------------------------
+  - name: Change mysql service file
+    copy:
+      src: /home/admino/configs/mysql.service
+      dest: /lib/systemd/system/mysql.service
+      remote_src : yes
+
+  - name: restart mysql service
+    systemd:
+      state: stopped
+      name: mysql
+      daemon_reload: yes
+
+  - name: delete file
+    file:
+      path: /dblogs/error.log
+      state: absent
+
+  - name: set nofile limits
+    pam_limits:
+      domain: "{{ item[0] }}"
+      limit_type: "{{ item[1] }}"
+      limit_item: nofile
+      value: 1048576
+    with_nested:
+      - [ 'mysql', 'tomcat' ]
+      - [ 'hard', 'soft' ]
+
+  - name: set nproc limits
+    pam_limits:
+      domain: "{{ item[0] }}"
+      limit_type: "{{ item[1] }}"
+      limit_item: nproc
+      value: 65000
+    with_nested:
+      - [ 'mysql', 'tomcat' ]
+      - [ 'hard', 'soft' ]
+
+  - name: restart mysql service
+    systemd:
+      state: restarted
+      name: mysql
+# --------------------------------------
+# Disable ubuntu aut upgrade
+# --------------------------------------
+  - name: Change in /etc/apt/apt.conf.d/20auto-upgrades
+    replace:
+      path: /etc/apt/apt.conf.d/20auto-upgrades
+      regexp: "Unattended-Upgrade \"1\""
+      replace: "Unattended-Upgrade \"0\""
+# --------------------------------------
+# Disable cloud-init
+# --------------------------------------
+  - name: Disable cloud-init service
+    file:
+      path: /etc/cloud/cloud-init.disabled
+      state: touch
+      mode: "u=rw,g=r,o=r"
+  
+  - name: reload cloud-init 
+    systemd:
+      name: cloud-init
+      daemon_reload: yes
+# --------------------------------------
+# Disable waagent
+# --------------------------------------
+  - name: Disable waangent 
+    systemd:
+      name: walinuxagent
+      enabled : no
+      state: stopped
+
+

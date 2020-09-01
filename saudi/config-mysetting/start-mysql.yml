@@ -1,0 +1,8 @@
+---
+- hosts: 172.40.135.13
+  gather_facts: false
+  tasks:
+  - name: restart mysql service
+    systemd:
+      state: started
+      name: mysql

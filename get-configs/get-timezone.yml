@@ -1,0 +1,22 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Set timezone to Asia/Kolkata
+    timezone:
+      name: Asia/Kolkata
+    check_mode: yes
+    #changed_when: false
+    register: tzinfo
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }} : {{ tzinfo.diff.before.name }}"
+      path: /root/ansible-files/timezones-on-server.txt 
+      create: yes
+    when: tzinfo.changed
+
+    # - debug:
+    #   msg: "{{ tzinfo }},
+    #         {{ tzinfo.diff.before.name }}"
+    # when: tzinfo.changed

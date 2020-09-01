@@ -1,0 +1,29 @@
+---
+- hosts: all
+  gather_facts: true
+  tasks:
+  - name: Check mysql limits
+    shell: systemctl show mysql | grep Limit
+    args:
+      chdir: /tmp/
+      executable: /bin/bash
+    register: script_output
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}  CPU=[
+        processor_cores= {{ ansible_facts['processor_cores'] }}, 
+        processor_count= {{ ansible_facts['processor_count'] }}, 
+        processor_vcpus= {{ ansible_facts['processor_vcpus'] }} ] 
+        RAM=[ total_mb={{ ansible_facts['memtotal_mb'] }} ]
+        mysql=[
+        {{ script_output.stdout_lines[13] }}, {{ script_output.stdout_lines[14] }}, 
+        {{ script_output.stdout_lines[17] }}, {{ script_output.stdout_lines[18] }} ]"
+      path: /root/facts/factsout.txt 
+      create: yes
+#ansible_facts.
+#ansible_memory_mb
+#memory_mb={{ ansible_facts['memory_mb'] }}
+#ansible_processor_cores
+#ansible_processor_count
+#ansible_processor_vcpus
+#ansible_facts

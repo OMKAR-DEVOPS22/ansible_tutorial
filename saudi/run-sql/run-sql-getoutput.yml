@@ -1,0 +1,27 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Download file from repo
+    get_url:
+      url: http://172.40.135.11/sqlscripts/runsql.sh
+      dest: /tmp/runsql.sh
+      mode: '0755'
+
+  - name: Run script
+    command: bash /tmp/runsql.sh
+    args:
+      chdir: /tmp/
+    register: script_output
+
+  - name: Fetch file from remote server
+    fetch: 
+      src: /tmp/sqlout.txt
+      dest: /root/sqloutput/mysql_out_-{{ inventory_hostname }}.txt
+      flat: yes
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ script_output }}"
+      path: /root/sqloutput/mysql_output.txt 
+      create: yes

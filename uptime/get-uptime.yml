@@ -1,0 +1,13 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: get uptime
+    command: uptime
+    register: output
+    ignore_errors: True
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ output.stdout_lines }}"
+      path: /root/ansible-files/uptimelist.txt 
+      create: yes

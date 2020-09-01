@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Run script
+    command: bash /root/scripts/tomcat_restart.sh
+    args:
+      chdir: /tmp/
+    register: script_output
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ script_output }}"
+      path: /root/tomcatoutput/tomcat_restart_output.txt 
+      create: yes

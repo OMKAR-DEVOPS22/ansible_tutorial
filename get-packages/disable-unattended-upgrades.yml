@@ -1,0 +1,43 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Check whether /etc/apt/apt.conf.d/20auto-upgrades exists
+    stat:
+      path: /etc/apt/apt.conf.d/20auto-upgrades
+    check_mode: yes
+    changed_when: false
+    register: filecheck
+
+  - name: Change in /etc/apt/apt.conf.d/20auto-upgrades
+    replace:
+      path: /etc/apt/apt.conf.d/20auto-upgrades
+      regexp: "Unattended-Upgrade \"1\""
+      replace: "Unattended-Upgrade \"0\""
+    when: filecheck.stat.exists
+    
+
+  - name: Check whether Unattended-Upgrade present in file
+    lineinfile:
+      path: /etc/apt/apt.conf.d/10periodic
+      regexp: "Unattended-Upgrade \"1\""
+      state: absent
+    check_mode: yes
+    changed_when: false
+    register: conf
+
+  - name: Change in /etc/apt/apt.conf.d/10periodic
+    replace:
+      path: /etc/apt/apt.conf.d/10periodic
+      regexp: "Unattended-Upgrade \"1\""
+      replace: "Unattended-Upgrade \"0\""
+    when: conf.found
+
+  - name: Add line  in /etc/apt/apt.conf.d/10periodic
+    lineinfile:
+      path: /etc/apt/apt.conf.d/10periodic
+      line: 'APT::Periodic::Unattended-Upgrade "0";'
+      insertafter : EOF
+    when: 
+      - not filecheck.stat.exists
+      - not conf.found

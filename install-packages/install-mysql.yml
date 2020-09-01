@@ -1,0 +1,8 @@
+---
+- hosts: 10.15.21.66
+  gather_facts: false
+  tasks:
+# --------------------------------------
+# Update sysctl conf 
+# --------------------------------------
+  - name: update sysctl

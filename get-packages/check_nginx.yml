@@ -1,0 +1,18 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Gather the package facts
+    package_facts: 
+      manager: apt
+  - name: Put in database if nginx is installed
+    uri:
+      url: http://10.15.15.86:2379/v2/keys/nginx-ver/{{ inventory_hostname }}
+      method: PUT
+      body: "value={{ ansible_facts.packages['nginx'][0]['version'] }}&ttl=28800"
+      status_code: 201
+      return_content: yes
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+    when: "'nginx' in ansible_facts.packages"
+    ignore_errors: True

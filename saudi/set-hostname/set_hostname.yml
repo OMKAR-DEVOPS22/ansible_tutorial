@@ -1,0 +1,42 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: get hostnames
+    command: hostname
+    register: output
+    ignore_errors: True
+  - name: set hostnames
+    shell: hostnamectl set-hostname {{ ansible_newhostname }}
+    args: 
+      executable: /bin/bash
+    register: output
+    ignore_errors: True
+  - name: Change in /etc/hosts
+    replace:
+      path: /etc/hosts
+      regexp: "AZ-OESEXAM-01"
+      replace: "{{ ansible_newhostname }}"
+  - name: Change in sshd_keys
+    replace:
+      path: "{{ item }}"
+      regexp: "AZ-OESEXAM-01"
+      replace: "{{ ansible_newhostname }}"
+    with_items:
+      - /etc/ssh/ssh_host_dsa_key.pub
+      - /etc/ssh/ssh_host_ecdsa_key.pub
+      - /etc/ssh/ssh_host_ed25519_key.pub
+      - /etc/ssh/ssh_host_rsa_key.pub
+      - /etc/opt/omi/ssl/ssl.cnf
+  - name: restart ssh service
+    systemd:
+      name: "{{ item }}"
+      state: restarted
+    with_items:
+      - "ssh"
+      - "sshd"
+      - "mysql"
+  - name: restart ssh service
+    systemd:
+      name: omsagent-2593d9a9-ea5c-4f20-84f9-f572da367498
+      state: restarted

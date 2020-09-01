@@ -1,0 +1,26 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: check file exeists
+    stat: 
+      path: /etc/sssd/sssd.conf
+    register: st
+#    ignore_errors: True
+#  - name: Put in database
+#    uri:
+#      url: http://10.15.15.86:2379/v2/keys/srv/mysql/{{ inventory_hostname }}
+#      method: PUT
+#      body: "value={{ output.stdout_lines }}&ttl=3600"
+#      status_code: 201
+#      return_content: yes
+#      headers:
+#        Content-Type: "application/x-www-form-urlencoded"
+#    register: curl_out
+#    ignore_errors: True
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}"
+      path: /root/ansible-files/sssd-installed.txt 
+      create: yes
+    when: st.stat.exists

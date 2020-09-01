@@ -1,0 +1,9 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Change in /etc/apt/apt.conf.d/20auto-upgrades
+    replace:
+      path: /etc/apt/apt.conf.d/20auto-upgrades
+      regexp: "Unattended-Upgrade \"1\""
+      replace: "Unattended-Upgrade \"0\""

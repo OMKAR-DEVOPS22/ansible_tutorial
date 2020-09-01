@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - setup:
+      filter: ansible_distribution*
+  - name: Download my_package
+    get_url:
+      url: http://10.15.15.86:8080/toconfig/nxlog.deb
+      dest: /tmp/nxlog.deb
+    when: ansible_distribution_release == "precise"
+  
+  - name: Install nxlog
+    apt: 
+      deb: /tmp/nxlog.deb

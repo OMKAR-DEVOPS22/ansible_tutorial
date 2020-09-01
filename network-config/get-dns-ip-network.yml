@@ -1,0 +1,10 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+    - name: setup resolv.conf
+      when: ansible_distribution_release is match ("xenial")
+      interfaces_file:
+        iface: "{{ ansible_default_ipv4['interface'] }}" 
+        option: dns-nameservers
+        value: 10.10.10.64 10.10.10.63

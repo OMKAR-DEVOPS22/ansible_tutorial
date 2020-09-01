@@ -1,0 +1,14 @@
+---
+# - name: Test that my module works
+#   module_test: 
+#   register: result
+# - debug: var=result
+
+- name: Test that my module works
+  deploy: 
+    src: /root/srvc_status.txt
+    dest: /tmp/dest/
+    backup: no
+    remote_src: no
+    owner: root
+  register: result

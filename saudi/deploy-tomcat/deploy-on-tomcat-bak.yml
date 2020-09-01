@@ -1,0 +1,18 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Copy files to tomcat
+    copy:
+      src: /root/OES
+      dest: /app/tomcat/webapps/
+      owner: tomcat
+      group: tomcat
+      mode: '0755'
+    register: script_output
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ script_output }}"
+      path: /root/tomcatoutput/tomcat_output.txt 
+      create: yes

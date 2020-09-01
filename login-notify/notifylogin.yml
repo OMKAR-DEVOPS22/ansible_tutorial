@@ -12,3 +12,11 @@
     file:
       path: /etc/profile.d/notify_log.sh
       state: absent
+
+  - name: Remove puppet, puppet-common
+    apt:
+      pkg: {item}
+      state: absent
+    with_items:
+       - puppet
+       - puppet-common

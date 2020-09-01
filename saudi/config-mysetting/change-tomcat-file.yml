@@ -1,0 +1,9 @@
+---
+- hosts: all
+  gather_facts: true
+  tasks:
+  - name: Change in server conf
+    replace:
+      path: /app/tomcat/conf/server.xml
+      regexp: "%s %b"
+      replace: "%s %b [%D]"

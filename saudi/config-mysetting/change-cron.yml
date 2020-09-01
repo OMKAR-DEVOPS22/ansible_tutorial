@@ -1,0 +1,9 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Cahnge crontab
+    replace:
+      path: /var/spool/cron/crontabs/root
+      regexp: "/10"
+      replace: "/2"

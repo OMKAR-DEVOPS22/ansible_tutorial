@@ -1,0 +1,32 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Change in /etc/apt/apt.conf.d/20auto-upgrades
+    replace:
+      path: /etc/apt/apt.conf.d/20auto-upgrades
+      regexp: "Unattended-Upgrade \"1\""
+      replace: "Unattended-Upgrade \"0\""
+# --------------------------------------
+# Disable cloud-init
+# --------------------------------------
+  - name: Disable cloud-init service
+    file:
+      path: /etc/cloud/cloud-init.disabled
+      state: touch
+      mode: "u=rw,g=r,o=r"
+  
+  - name: reload cloud-init 
+    systemd:
+      name: cloud-init
+      daemon_reload: yes
+# --------------------------------------
+# Disable waagent
+# --------------------------------------
+  - name: Disable waangent 
+    systemd:
+      name: walinuxagent
+      enabled : no
+      state: stopped
+
+

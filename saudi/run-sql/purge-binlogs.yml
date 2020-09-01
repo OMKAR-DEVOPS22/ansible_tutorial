@@ -1,0 +1,14 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Run script
+    command: mysql -uroot -proot -vv -sNe "purge binary logs before DATE_SUB(NOW(), INTERVAL 1 HOUR);"
+    args:
+      chdir: /tmp/
+    register: script_output
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}   {{ script_output.stdout_lines[0] }}"
+      path: /root/sqloutput/mysql-set-var-output.txt 
+      create: yes

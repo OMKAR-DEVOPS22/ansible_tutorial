@@ -1,0 +1,46 @@
+---
+- hosts: localhost
+  vars:
+    alpha: [ 'a', 'b', 'c', 'd' ]
+    numbers:  [ 1, 2, 3, 4 ]
+  gather_facts: false
+  tasks:
+#  - name: for test
+#    debug:
+#        msg: "{{ item.0 }} and {{ item.1 }}"
+#    with_together:
+#      - "{{ alpha }}"
+#      - "{{ numbers }}"
+
+#  - name: for test nested loop runs 3 times
+#    debug:
+#      msg: "{{ item }}"
+#    vars:
+#      nested_list:
+#        - - one
+#          - two
+#          - three
+#    with_items: "{{ nested_list }}"
+
+#  - name: for test nested loop run single time
+#    debug:
+#      msg: "{{ item }}"
+#    vars:
+#      nested_list:
+#        - - one
+#          - two
+#          - three
+#    with_items: 
+#      - "{{ nested_list }}"
+
+  - name: for test nested loop run single time
+    debug:
+      msg: "{{ item }}"
+    with_nested:
+      - [ 'alice', 'bob' ]
+      - [ 'clientdb', 'employeedb' ]
+      - [ 1 , 2 ]
+
+#alpha: [ 'a', 'b', 'c', 'd' ]
+#numbers:  [ 1, 2, 3, 4 ]
+        

@@ -3,14 +3,14 @@
   gather_facts: false
   tasks:
   - name: get list of listening ports
-    shell: netstat -tunlp | grep mysql
+    shell: netstat -tunlp | grep glassfish
     args: 
       executable: /bin/bash
     register: output
-    ignore_errors: True
+    #ignore_errors: True
   - name: Put in database
     uri:
-      url: http://10.15.15.86:2379/v2/keys/srv/mysql/{{ inventory_hostname }}
+      url: http://10.15.15.86:2379/v2/keys/srv/glassfish/{{ inventory_hostname }}
       method: PUT
       body: "value={{ output.stdout_lines }}&ttl=3600"
       status_code: 201
@@ -22,6 +22,6 @@
   - local_action: 
       module: lineinfile 
       line: "{{ inventory_hostname }}, {{ output.stdout_lines }}"
-      path: /root/ansible-files/portlist.txt 
+      path: /tmp/glassfish-portlist.txt 
       create: yes
 

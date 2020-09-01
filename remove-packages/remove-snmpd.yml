@@ -1,0 +1,16 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Remove snmpd
+    apt:
+      pkg: snmpd
+      state: absent
+    #sudo: yes
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ script_output }}"
+      path: /root/ansible-files/apt-remove-out.txt 
+      create: yes
+

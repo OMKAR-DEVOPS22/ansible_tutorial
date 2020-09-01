@@ -1,0 +1,18 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Change mysql service file
+    copy:
+      src: /root/ansible-files/mysql.service
+      dest: /lib/systemd/system/mysql.service
+#      remote_src : yes
+  - name: delete file
+    file:
+      path: /dblogs/error.log
+      state: absent
+  - name: restart mysql service
+    systemd:
+      state: stopped
+      name: mysql
+      daemon_reload: yes

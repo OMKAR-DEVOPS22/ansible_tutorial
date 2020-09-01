@@ -1,0 +1,20 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Cahnge in config
+    lineinfile:
+      path: /etc/mysql/mysql.conf.d/mysqld.cnf
+      #regexp: '^log_error(.*)'
+      insertafter: '^log_error(.*)'
+      line: 'log_error_verbosity = 2'
+  - name: Run script
+    command: mysql -uroot -proot -vv -sNe "set global log_error_verbosity = 2"
+    args:
+      chdir: /tmp/
+    register: script_output
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}   {{ script_output.stdout_lines[0] }}"
+      path: /root/sqloutput/mysql-set-var-output.txt 
+      create: yes
