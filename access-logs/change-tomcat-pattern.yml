@@ -1,37 +1,63 @@
 ---
-- hosts: 10.10.20.222
+- hosts: 10.15.21.65
+  vars:
+    foo_dict:
+      fileDateFormat: "yyyy-MM-dd.HH"
+      pattern: "%m %h %l &quot;%{X-Forwarded-For}i&quot; %u %t &quot;%r&quot; %s %b &quot;%{User-Agent}i&quot; &quot;%{Referer}i&quot; %D"
   gather_facts: false
   tasks:
-  - name: Check whether /app/tomcat/conf/server.xml exists
+  - name: Check whether server.xml exists in listed directories
     stat:
-      path: /app/tomcat8/conf/server.xml
+      path: /app/{{ item }}/conf/server.xml
     check_mode: yes
-    changed_when: false
+    #changed_when: false
+    loop:
+      - tomcat
+      - tomcat7
+      - tomcat8
     register: filecheck
 
-  - name: Change logging pattern in /app/tomcat/conf/server.xml file
-    replace:
-      path: /app/tomcat8/conf/server.xml
-      regexp: "Unattended-Upgrade \"1\""
-      replace: "Unattended-Upgrade \"0\""
-    when: filecheck.stat.exists
-    
+  - name: Read config in server.xml file
+    xml:
+      path: "{{ item.stat.path }}"
+      xpath: /Server/Service/Engine/Host/Valve
+      content: attribute
+    register: xmlresp
+    check_mode: yes
+    loop: "{{ filecheck.results }}"
+    when: item.stat.exists
+    loop_control:
+      label: "{{ item.item }}"
 
-#  - name: Check whether Unattended-Upgrade present in file
-#    lineinfile:
-#      path: /etc/apt/apt.conf.d/10periodic
-#      regexp: "Unattended-Upgrade \"1\""
-#      state: absent
-#    check_mode: yes
-#    changed_when: false
-#    register: conf
-#    when: filecheck.stat.exists
-#
-#  - name: Add line  in /etc/apt/apt.conf.d/10periodic
-#    lineinfile:
-#      path: /etc/apt/apt.conf.d/10periodic
-#      line: 'APT::Periodic::Unattended-Upgrade "0";'
-#      insertafter : EOF
-#    when: 
-#      - not filecheck.stat.exists
-#      - not conf.found
+  - name: Debug message
+    debug:
+      msg: 
+        - "{{ inventory_hostname }}"
+        - "{{ item.matches }}"
+    loop: "{{ xmlresp.results }}"
+    when: '"matches" in item'
+    loop_control:
+      label: "{{ item.item.item }}"
+
+  - name: Change logging pattern in server.xml file
+    xml:
+      path: "{{ item.0.item.stat.path }}"
+      xpath: /Server/Service/Engine/Host/Valve
+      attribute: "{{ item.1.key }}"
+      value: "{{ item.1.value }}"
+    register: modified
+    check_mode: yes
+    loop: "{{ xmlresp.results|product(foo_dict|dict2items)|list }}"
+    when: '"matches" in item.0'
+    loop_control:
+      label: "{{ item.0.item.item }}"
+
+#  - name: Debug message
+#    debug:
+#      msg: 
+#        - "{{ inventory_hostname }}"
+#        - "{{ modified}}"
+#    #loop: "{{ xmlresp.results }}"
+#    when: modified.changed
+#    #loop_control:
+#    #  label: "{{ item.item.item }}"

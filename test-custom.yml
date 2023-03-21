@@ -2,4 +2,4 @@
 #- hosts: [localhost, 10.15.21.40]
   gather_facts: false
   roles:
-  - test1
+  - testloop

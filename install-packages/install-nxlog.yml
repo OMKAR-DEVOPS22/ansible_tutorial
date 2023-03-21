@@ -4,12 +4,64 @@
   tasks:
   - setup:
       filter: ansible_distribution*
-  - name: Download my_package
+  - name: Download nxlog for ubuntu 12.04
     get_url:
-      url: http://10.15.15.86:8080/toconfig/nxlog.deb
+      url: http://10.15.15.86:8080/toconfig/nxlog-ce_2.9.1716_ubuntu_precise_amd64.deb
       dest: /tmp/nxlog.deb
     when: ansible_distribution_release == "precise"
-  
+  - name: Download nxlog nxlog-ce_2.10.2150_ubuntu_bionic_amd64
+    get_url: 
+      url: http://10.15.15.86:8080/toconfig/nxlog-ce_2.10.2150_ubuntu_{{ ansible_distribution_release }}_amd64.deb
+      dest: /tmp/nxlog.deb
+    when: ansible_distribution_release != "precise"
+  #- name: Install nxlog dependency
+  #  apt: 
+  #    update_cache: yes
+  #    name: 
+  #    - libapr1
+  #    - libdbi1
+  #    - libexpat1
+  #    state: present
+  #    force: yes
   - name: Install nxlog
     apt: 
       deb: /tmp/nxlog.deb
+      force: yes
+      
+  - name: stop service =< ubuntu 14
+    service:
+      name: nxlog
+      state: stopped
+    when: ansible_distribution_major_version < '15'
+  - name: stop service
+    systemd:
+      name: nxlog
+      state: stopped
+    when: ansible_distribution_major_version > '14'
+
+  - name: Stop nxlog process
+    shell: pkill -9 nxlog
+    args: 
+      executable: /bin/bash
+    register: output
+    ignore_errors: True
+  - name: Add nxlog to adm
+    user:
+      name: nxlog
+      group: adm
+      append: yes
+  - name: change config
+    get_url:
+      url: http://10.15.15.86:8080/toconfig/nxlog.conf
+      dest: /etc/nxlog/nxlog.conf
+      force: yes
+  - name: restart service =< ubuntu 14
+    service:
+      name: nxlog
+      state: restarted
+    when: ansible_distribution_major_version < '15'
+  - name: restart service
+    systemd:
+      name: nxlog
+      state: restarted
+    when: ansible_distribution_major_version > '14'

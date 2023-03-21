@@ -1,22 +1,25 @@
 ---
-- hosts: all
+- hosts: all,!10.10.20.28,!10.15.21.76
   gather_facts: false
   tasks:
+  - name: Delete old login file
+    file:
+      path: /etc/profile.d/notify_log.sh
+      state: absent
   - name: Download file from repo
     get_url:
       url: http://10.15.15.86:8080/toconfig/login_notify/login_notify.sh
       dest: /etc/profile.d/login_notify.sh
       mode: '0755'
       force: yes
-  - name: Delete old login file
-    file:
-      path: /etc/profile.d/notify_log.sh
-      state: absent
 
-  - name: Remove puppet, puppet-common
+  - name: Remove puppet, puppet-common, snmp
     apt:
-      pkg: {item}
+      pkg:
+      - puppet
+      - puppet-common
+      - snmpd
+      - snmp
+      - snmptrapd
+      - snapd
       state: absent
-    with_items:
-       - puppet
-       - puppet-common

@@ -15,14 +15,9 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = r'''
 ---
 module: deploy
-short_description: Copy files to remote locations same as original copy module. 
-                   Changed backup option, now backup done in diffrent location.
-description:
-    - Same as original copy module.
-author:
-- Ansible Core Team
-- Michael DeHaan
-- Shivaditya Ingale
+version_added: historical
+short_description: Copy files to remote locations
+
 '''
 
 EXAMPLES = r'''
@@ -33,8 +28,125 @@ EXAMPLES = r'''
     owner: foo
     group: foo
     mode: '0644'
+
+- name: Copy file with owner and permission, using symbolic representation
+  copy:
+    src: /srv/myfiles/foo.conf
+    dest: /etc/foo.conf
+    owner: foo
+    group: foo
+    mode: u=rw,g=r,o=r
+
+- name: Another symbolic mode example, adding some permissions and removing others
+  copy:
+    src: /srv/myfiles/foo.conf
+    dest: /etc/foo.conf
+    owner: foo
+    group: foo
+    mode: u+rw,g-wx,o-rwx
+
+- name: Copy a new "ntp.conf file into place, backing up the original if it differs from the copied version
+  copy:
+    src: /mine/ntp.conf
+    dest: /etc/ntp.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+
+- name: Copy a new "sudoers" file into place, after passing validation with visudo
+  copy:
+    src: /mine/sudoers
+    dest: /etc/sudoers
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Copy a "sudoers" file on the remote machine for editing
+  copy:
+    src: /etc/sudoers
+    dest: /etc/sudoers.edit
+    remote_src: yes
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Copy using inline content
+  copy:
+    content: '# This file was moved to /etc/other.conf'
+    dest: /etc/mine.conf
+
+- name: If follow=yes, /path/to/file will be overwritten by contents of foo.conf
+  copy:
+    src: /etc/foo.conf
+    dest: /path/to/link  # link to /path/to/file
+    follow: yes
+
+- name: If follow=no, /path/to/link will become a file and be overwritten by contents of foo.conf
+  copy:
+    src: /etc/foo.conf
+    dest: /path/to/link  # link to /path/to/file
+    follow: no
 '''
 
+RETURN = r'''
+dest:
+    description: Destination file/path
+    returned: success
+    type: str
+    sample: /path/to/file.txt
+src:
+    description: Source file used for the copy on the target machine
+    returned: changed
+    type: str
+    sample: /home/httpd/.ansible/tmp/ansible-tmp-1423796390.97-147729857856000/source
+md5sum:
+    description: MD5 checksum of the file after running copy
+    returned: when supported
+    type: str
+    sample: 2a5aeecc61dc98c4d780b14b330e3282
+checksum:
+    description: SHA1 checksum of the file after running copy
+    returned: success
+    type: str
+    sample: 6e642bb8dd5c2e027bf21dd923337cbb4214f827
+backup_file:
+    description: Name of backup file created
+    returned: changed and if backup=yes
+    type: str
+    sample: /path/to/file.txt.2015-02-12@22:09~
+gid:
+    description: Group id of the file, after execution
+    returned: success
+    type: int
+    sample: 100
+group:
+    description: Group of the file, after execution
+    returned: success
+    type: str
+    sample: httpd
+owner:
+    description: Owner of the file, after execution
+    returned: success
+    type: str
+    sample: httpd
+uid:
+    description: Owner id of the file, after execution
+    returned: success
+    type: int
+    sample: 100
+mode:
+    description: Permissions of the target, after execution
+    returned: success
+    type: str
+    sample: 0644
+size:
+    description: Size of the target, after execution
+    returned: success
+    type: int
+    sample: 1220
+state:
+    description: State of the target, after execution
+    returned: success
+    type: str
+    sample: file
+'''
 
 import errno
 import filecmp
@@ -47,7 +159,8 @@ import shutil
 import stat
 import tempfile
 import traceback
-import time
+
+from inspect import currentframe, getframeinfo
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.common.process import get_bin_path
@@ -179,7 +292,11 @@ def copy_diff_files(src, dest, module):
     owner = module.params['owner']
     group = module.params['group']
     local_follow = module.params['local_follow']
+    backup = module.params['backup']
     diff_files = filecmp.dircmp(src, dest).diff_files
+    print('check here (copy_diff_files)',getframeinfo(currentframe()).lineno)
+    print('src', '-', src, '| dest - ', dest)
+    print('diff_files', '-'*8, diff_files, ' len - ',len(diff_files))
     if len(diff_files):
         changed = True
     if not module.check_mode:
@@ -188,11 +305,19 @@ def copy_diff_files(src, dest, module):
             dest_item_path = os.path.join(dest, item)
             b_src_item_path = to_bytes(src_item_path, errors='surrogate_or_strict')
             b_dest_item_path = to_bytes(dest_item_path, errors='surrogate_or_strict')
+            print('check here (copy_diff_files loop)',getframeinfo(currentframe()).lineno)
+            print('b_src_item_path :', b_src_item_path)
+            print('b_dest_item_path :', b_dest_item_path)
             if os.path.islink(b_src_item_path) and local_follow is False:
                 linkto = os.readlink(b_src_item_path)
                 os.symlink(linkto, b_dest_item_path)
             else:
-                shutil.copyfile(b_src_item_path, b_dest_item_path)
+                if backup: # and module.params['backup_dir']:
+                    check_remote_files(b_dest_item_path, module)
+                    if os.path.exists(b_dest_item_path):
+                        backup_file = backup_local(b_dest_item_path, module)
+                        print('check here (backup_file)',getframeinfo(currentframe()).lineno, 'backup_file ',backup_file)
+                shutil.copy2(b_src_item_path, b_dest_item_path)
 
             if owner is not None:
                 module.set_owner_if_different(b_dest_item_path, owner, False)
@@ -207,7 +332,11 @@ def copy_left_only(src, dest, module):
     owner = module.params['owner']
     group = module.params['group']
     local_follow = module.params['local_follow']
+    backup = module.params['backup']
     left_only = filecmp.dircmp(src, dest).left_only
+    print('check here (copy_left_only)',getframeinfo(currentframe()).lineno)
+    print('src', '-', src, '| dest - ', dest)
+    print('left_only', '-'*8, left_only, ' len - ', len(left_only))
     if len(left_only):
         changed = True
     if not module.check_mode:
@@ -216,34 +345,59 @@ def copy_left_only(src, dest, module):
             dest_item_path = os.path.join(dest, item)
             b_src_item_path = to_bytes(src_item_path, errors='surrogate_or_strict')
             b_dest_item_path = to_bytes(dest_item_path, errors='surrogate_or_strict')
+            print('check here (left_only loop)',getframeinfo(currentframe()).lineno)
+            print('b_src_item_path :', b_src_item_path)
+            print('b_dest_item_path :', b_dest_item_path)
 
+            # If src item is linked dir and symlink follow is yes
             if os.path.islink(b_src_item_path) and os.path.isdir(b_src_item_path) and local_follow is True:
+                if backup: # and module.params['backup_dir']:
+                    check_remote_files(b_dest_item_path, module)
+                    if os.path.exists(b_dest_item_path):
+                        backup_file = module.backup_local(b_dest_item_path)
                 shutil.copytree(b_src_item_path, b_dest_item_path, symlinks=not(local_follow))
                 chown_recursive(b_dest_item_path, module)
 
+            # If src item is linked dir and symlink follow is no
             if os.path.islink(b_src_item_path) and os.path.isdir(b_src_item_path) and local_follow is False:
                 linkto = os.readlink(b_src_item_path)
                 os.symlink(linkto, b_dest_item_path)
 
+            # If src item is linked file and symlink follow is yes
             if os.path.islink(b_src_item_path) and os.path.isfile(b_src_item_path) and local_follow is True:
-                shutil.copyfile(b_src_item_path, b_dest_item_path)
+                if backup: # and module.params['backup_dir']:
+                    check_remote_files(b_dest_item_path, module)
+                    if os.path.exists(b_dest_item_path):
+                        backup_file = module.backup_local(b_dest_item_path)
+                shutil.copy2(b_src_item_path, b_dest_item_path)
                 if owner is not None:
                     module.set_owner_if_different(b_dest_item_path, owner, False)
                 if group is not None:
                     module.set_group_if_different(b_dest_item_path, group, False)
 
+            # If src item is linked file and symlink follow is no
             if os.path.islink(b_src_item_path) and os.path.isfile(b_src_item_path) and local_follow is False:
                 linkto = os.readlink(b_src_item_path)
                 os.symlink(linkto, b_dest_item_path)
-
+            
+            # Copy if src item is file
             if not os.path.islink(b_src_item_path) and os.path.isfile(b_src_item_path):
-                shutil.copyfile(b_src_item_path, b_dest_item_path)
+                print('check here (left_only loop)',getframeinfo(currentframe()).lineno, 'copying ',b_src_item_path)
+                if backup: # and module.params['backup_dir']:
+                    check_remote_files(b_dest_item_path, module)
+                    if os.path.exists(b_dest_item_path):
+                        backup_file = module.backup_local(b_dest_item_path)
+                        print('check here (backup_file)',getframeinfo(currentframe()).lineno, 'backup_file ',backup_file)
+                shutil.copy2(b_src_item_path, b_dest_item_path)
                 if owner is not None:
                     module.set_owner_if_different(b_dest_item_path, owner, False)
                 if group is not None:
                     module.set_group_if_different(b_dest_item_path, group, False)
 
+            # Copy if src item is directory
             if not os.path.islink(b_src_item_path) and os.path.isdir(b_src_item_path):
+                if backup: # and module.params['backup_dir']:
+                    check_remote_files(b_dest_item_path, module)
                 shutil.copytree(b_src_item_path, b_dest_item_path, symlinks=not(local_follow))
                 chown_recursive(b_dest_item_path, module)
 
@@ -254,6 +408,9 @@ def copy_left_only(src, dest, module):
 def copy_common_dirs(src, dest, module):
     changed = False
     common_dirs = filecmp.dircmp(src, dest).common_dirs
+    print('check here (copy_common_dirs)',getframeinfo(currentframe()).lineno)
+    print('src', '-', src, '| dest - ', dest)
+    print('common_dirs', '-'*8, common_dirs)
     for item in common_dirs:
         src_item_path = os.path.join(src, item)
         dest_item_path = os.path.join(dest, item)
@@ -268,22 +425,58 @@ def copy_common_dirs(src, dest, module):
         changed = changed or copy_common_dirs(os.path.join(src, item), os.path.join(dest, item), module)
     return changed
 
-def backup_local(module, fn):
-        '''make a date-marked backup of the specified file, return True or False on success or failure'''
+def backup_local(fn, module):
+    '''make a date-marked backup of the specified file, return True or False on success or failure'''
 
-        backupdest = ''
-        if os.path.exists(fn):
-            # backups named basename.PID.YYYY-MM-DD@HH:MM:SS~
-            ext = time.strftime("%Y-%m-%d@%H:%M:%S~", time.localtime(time.time()))
-            backupdest = '%s.%s.%s' % (fn, os.getpid(), ext)
-
+    backupdest = ''
+    dest = module.params['dest']
+    #backup_dir = module.params['backup_dir']
+    backup_date = module.params['_backup_date']
+    #ticket_id = module.params['ticket_id']
+    backup_dir = '/app/bak'
+    ticket_id = '123456'
+    
+    b_dest = to_bytes(dest, errors='surrogate_or_strict')
+    b_backup_dir = to_bytes(backup_dir, errors='surrogate_or_strict')
+    b_backup_date = to_bytes(backup_date, errors='surrogate_or_strict')
+    b_ticket_id = to_bytes(ticket_id, errors='surrogate_or_strict')
+    
+    if os.path.exists(fn):
+        backupdest = os.path.join(b_backup_dir, b_backup_date, b_ticket_id)
+        print('check here backupdest: ', backupdest, getframeinfo(currentframe()).lineno)
+        print('check here fn: ', fn, getframeinfo(currentframe()).lineno)
+        
+        backupdest = os.path.join(backup_dir, backup_date, ticket_id, fn.replace(dest, '', 1))
+        
+        if PY3:
             try:
-                module.preserved_copy(fn, backupdest)
-            except (shutil.Error, IOError) as e:
-                module.fail_json(msg='Could not make backup of %s to %s: %s' % (fn, backupdest, to_native(e)))
+                os.makedirs(os.path.dirname(backupdest), exist_ok=True)
+            except:
+                pass
+        else:
+            try:
+                os.makedirs(os.path.dirname(backupdest))
+            except:
+                pass
+        print('check here backupdest: ', backupdest, getframeinfo(currentframe()).lineno)
 
-        return backupdest
+        try:
+            module.preserved_copy( fn, backupdest)
+        except (shutil.Error, IOError) as e:
+            module.fail_json(msg='Could not make backup of %s to %s: %s' % (fn, backupdest, to_native(e)))
 
+    return backupdest
+
+
+def check_remote_files(path, module):
+    ''' Backup remote files before copying.'''
+    print('check here',getframeinfo(currentframe()).lineno)
+    print('-' * 8)
+    for dirpath, dirnames, filenames in os.walk(path):
+        print('dirpath', dirpath)
+        print('dirnames', dirnames)
+        print('filenames', filenames)
+        print('-' * 8)
 
 def main():
 
@@ -297,17 +490,22 @@ def main():
             content=dict(type='str', no_log=True),
             dest=dict(type='path', required=True),
             backup=dict(type='bool', default=False),
+            backup_dir=dict(type='path'),
+            ticket_id=dict(type='str'),
             force=dict(type='bool', default=True, aliases=['thirsty']),
             validate=dict(type='str'),
             directory_mode=dict(type='raw'),
             remote_src=dict(type='bool'),
             local_follow=dict(type='bool'),
             checksum=dict(type='str'),
+            follow=dict(type='bool', default=False),
+            _backup_date=dict(type='str'),
         ),
         add_file_common_args=True,
         supports_check_mode=True,
     )
-
+    import time
+    module.params['_backup_date'] = time.strftime("%Y-%m-%d_%H%M%S", time.localtime(time.time()))
     if module.params.get('thirsty'):
         module.deprecate('The alias "thirsty" has been deprecated and will be removed, use "force" instead', version='2.13')
 
@@ -329,6 +527,8 @@ def main():
     group = module.params['group']
     remote_src = module.params['remote_src']
     checksum = module.params['checksum']
+    
+    
 
     if not os.path.exists(b_src):
         module.fail_json(msg="Source %s not found" % (src))
@@ -366,9 +566,12 @@ def main():
             expected_checksum=checksum
         )
 
+    #print('check here',getframeinfo(currentframe()).lineno)
+    
     # Special handling for recursive copy - create intermediate dirs
-    if _original_basename and dest.endswith(os.sep):
-        dest = os.path.join(dest, _original_basename)
+    if dest.endswith(os.sep):
+        if _original_basename:
+            dest = os.path.join(dest, _original_basename)
         b_dest = to_bytes(dest, errors='surrogate_or_strict')
         dirname = os.path.dirname(dest)
         b_dirname = to_bytes(dirname, errors='surrogate_or_strict')
@@ -395,6 +598,9 @@ def main():
         dest = os.path.join(dest, basename)
         b_dest = to_bytes(dest, errors='surrogate_or_strict')
 
+    print('check here',getframeinfo(currentframe()).lineno)
+    print('b_dest----', b_dest)
+    print('b_dest exists ----', os.path.exists(b_dest))
     if os.path.exists(b_dest):
         if os.path.islink(b_dest) and follow:
             b_dest = os.path.realpath(b_dest)
@@ -404,6 +610,11 @@ def main():
         if os.access(b_dest, os.R_OK) and os.path.isfile(b_dest):
             checksum_dest = module.sha1(dest)
     else:
+        print('check here (dest not exists)',getframeinfo(currentframe()).lineno)
+        print('b_dest----', b_dest)
+        print('b_dest dirname ----', os.path.dirname(b_dest))
+        print('b_dest dirname ----', os.path.exists(os.path.dirname(b_dest)))
+        #os.makedirs(b_dest)
         if not os.path.exists(os.path.dirname(b_dest)):
             try:
                 # os.path.exists() can return false in some
@@ -511,12 +722,19 @@ def main():
     else:
         changed = False
 
+    print('check here',getframeinfo(currentframe()).lineno)
+    print('remote_src ', '-'*8, remote_src)
     if checksum_src is None and checksum_dest is None:
+        #print(getframeinfo(currentframe()).lineno)
         if remote_src and os.path.isdir(module.params['src']):
             b_src = to_bytes(module.params['src'], errors='surrogate_or_strict')
             b_dest = to_bytes(module.params['dest'], errors='surrogate_or_strict')
+            print('check here',getframeinfo(currentframe()).lineno)
+            print('b_src','-'*8, b_src)
+            print('b_dest','-'*8, b_dest)
 
             if src.endswith(os.path.sep) and os.path.isdir(module.params['dest']):
+                print('check here',getframeinfo(currentframe()).lineno)
                 diff_files_changed = copy_diff_files(b_src, b_dest, module)
                 left_only_changed = copy_left_only(b_src, b_dest, module)
                 common_dirs_changed = copy_common_dirs(b_src, b_dest, module)
@@ -525,25 +743,33 @@ def main():
                     changed = True
 
             if src.endswith(os.path.sep) and not os.path.exists(module.params['dest']):
+                print('check here (src ends with / dest not exists)',getframeinfo(currentframe()).lineno)
                 b_basename = to_bytes(os.path.basename(src), errors='surrogate_or_strict')
                 b_dest = to_bytes(os.path.join(b_dest, b_basename), errors='surrogate_or_strict')
                 b_src = to_bytes(os.path.join(module.params['src'], ""), errors='surrogate_or_strict')
                 if not module.check_mode:
+                    if backup and module.params['backup_dir']:
+                        check_remote_files(src, module)
                     shutil.copytree(b_src, b_dest, symlinks=not(local_follow))
                 chown_recursive(dest, module)
                 changed = True
 
             if not src.endswith(os.path.sep) and os.path.isdir(module.params['dest']):
+                print('check here (dest is dir)',getframeinfo(currentframe()).lineno)
                 b_basename = to_bytes(os.path.basename(src), errors='surrogate_or_strict')
                 b_dest = to_bytes(os.path.join(b_dest, b_basename), errors='surrogate_or_strict')
                 b_src = to_bytes(os.path.join(module.params['src'], ""), errors='surrogate_or_strict')
                 if not module.check_mode and not os.path.exists(b_dest):
+                    print('check here (dest not exists)',getframeinfo(currentframe()).lineno)
+                    #if backup: # and module.params['backup_dir']:
+                    #    check_remote_files(src, module)
                     shutil.copytree(b_src, b_dest, symlinks=not(local_follow))
                     changed = True
                     chown_recursive(dest, module)
                 if module.check_mode and not os.path.exists(b_dest):
                     changed = True
                 if os.path.exists(b_dest):
+                    print('check here (dest exists)',getframeinfo(currentframe()).lineno)                    
                     diff_files_changed = copy_diff_files(b_src, b_dest, module)
                     left_only_changed = copy_left_only(b_src, b_dest, module)
                     common_dirs_changed = copy_common_dirs(b_src, b_dest, module)
@@ -551,10 +777,13 @@ def main():
                     if diff_files_changed or left_only_changed or common_dirs_changed or owner_group_changed:
                         changed = True
 
+            print('check here ',getframeinfo(currentframe()).lineno, '    |  ', src.endswith(os.path.sep), os.path.exists(module.params['dest']))
             if not src.endswith(os.path.sep) and not os.path.exists(module.params['dest']):
+                print('check here (dest not exists)',getframeinfo(currentframe()).lineno)
                 b_basename = to_bytes(os.path.basename(module.params['src']), errors='surrogate_or_strict')
                 b_dest = to_bytes(os.path.join(b_dest, b_basename), errors='surrogate_or_strict')
                 if not module.check_mode and not os.path.exists(b_dest):
+                    print('check here (dest not exists)',getframeinfo(currentframe()).lineno)
                     os.makedirs(b_dest)
                     b_src = to_bytes(os.path.join(module.params['src'], ""), errors='surrogate_or_strict')
                     diff_files_changed = copy_diff_files(b_src, b_dest, module)
