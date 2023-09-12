@@ -1,0 +1,21 @@
+---
+- hosts: all
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: To check setenv.sh exist
+      stat:
+        path: /app/tomcat/bin/setenv.sh
+      register: register_name
+    - name: commenting setenv.sh
+      replace:
+       dest: /app/tomcat/bin/setenv.sh
+       regexp: '^export CATALINA_OPTS'
+       replace: '# export CATALINA_OPTS'
+      when: register_name.stat.exists
+    - name: restart tomcat
+      service:
+       name: tomcat
+       state: restarted
+      when: register_name.stat.exists

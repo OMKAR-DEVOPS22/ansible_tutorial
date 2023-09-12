@@ -1,0 +1,15 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: get list of listening ports
+    shell:   lsb_release -rs | cut -d'.' -f1
+    args: 
+      executable: /bin/bash
+    register: output
+  - name: Debug message
+    debug:
+      msg: 
+        - "{{ inventory_hostname }}"
+        - "{{ output.stdout }}"
+    when: output.stdout > '12'

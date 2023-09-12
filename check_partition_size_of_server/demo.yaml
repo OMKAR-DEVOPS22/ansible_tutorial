@@ -1,0 +1,14 @@
+- name: Check disk space
+  hosts: all
+  
+  tasks:
+
+    - name: Get disk facts
+      ansible.builtin.setup:
+        gather_subset:
+          - filesystem
+        
+    - name: Print disk usage
+      debug:
+        msg: "Disk usage on {{ item.mount }} - free space: {{ item.space_free }}"
+      loop: "{{ ansible_facts.filesystems }}"

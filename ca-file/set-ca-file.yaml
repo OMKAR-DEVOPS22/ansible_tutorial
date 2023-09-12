@@ -1,0 +1,20 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Update sshd file
+    lineinfile:
+      path: path/to/file
+      insertbefore: BOF
+      line: 'Include /etc/ssh/sshd_config.d/*.conf'
+    #check_mode: yes
+  - name: Create /etc/ssh/sshd_config.d directory
+      file:
+        path: /etc/ssh/sshd_config.d
+        state: directory
+
+  - name: Reload sshd service
+    systemd:
+      name: ssh
+      daemon_reload: yes
+      state: restarted

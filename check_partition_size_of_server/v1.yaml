@@ -1,0 +1,20 @@
+- hosts: all
+
+  tasks:
+
+    - name: Get disk utilization for /
+      shell: df -P / | awk 'NR==2 {print $5}'
+      register: disk_utilization_root
+
+    - name: Get disk utilization for /
+      shell: df -P / | awk 'NR==2 {print $5}'
+      register: disk_utilization_root
+
+    - name: Set disk utilization fact
+      set_fact:
+        disk_util_pct: "{{ disk_utilization_root.stdout }}"
+    
+    - name: Print disk utilization  
+      debug:
+        msg: "Disk utilization is {{ disk_util_pct }}%"
+    

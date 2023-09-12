@@ -1,0 +1,11 @@
+---
+# tasks file for with_random_choice
+- name: with_random_choice
+  debug:
+    msg: "{{ item }}"
+  with_random_choice: "{{ list_one }}"
+
+- name: with_random_choice -> loop (No loop is needed here)
+  debug:
+    msg: "{{ list_one|random }}"
+  tags: random

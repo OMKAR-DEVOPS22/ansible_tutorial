@@ -1,0 +1,88 @@
+---
+- hosts: 10.10.10.212
+  gather_facts: false
+  tasks:
+#  - setup:
+#      filter: ansible_distribution*
+  - name: Get ubuntu verstion
+    shell:   lsb_release -rs | cut -d'.' -f1
+    args: 
+      executable: /bin/bash
+    register: srvversion
+
+  - name: Ensure group "beoper" exists
+    group:
+      name: beoper
+      state: present
+
+  - name: Create user
+    user:
+      name: backupguru
+      password: "$6$mysecretsalt$H3rA1.6WTqjsuLocMliHwnm8/RA4Slbsc38ZxiB0UXPifhfwuMio2zksHkhw5VPtpmYIeHbXpWzRGFAV4tDEg1"
+      expires: -1
+      shell: /bin/bash
+      groups: beoper, sudo
+      append: yes
+    register: userinfo
+
+  - name: Cahnge sshd configuration file
+    replace:
+      path: /etc/ssh/sshd_config
+      regexp: "PermitRootLogin.*"
+      replace: "PermitRootLogin without-password"
+    
+  - name: Create .ssh dir
+    file:
+      path: /root/.ssh
+      state: directory
+      mode: '700'
+      owner: root
+      
+  - name: Create authorized_keys file
+    file:
+      path: /root/.ssh/authorized_keys
+      state: touch
+      mode: '644'
+      owner: root      
+
+  - name: Append ssh keys to authorized_keys
+    lineinfile:
+      path: /root/.ssh/authorized_keys
+      line: "{{ item }}"
+      state: present
+      create: yes
+    loop:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD4Nb12K7wFilVbCSerzlTMFi1XFf/5A02cVbQyv2P7mLxI8WQqSILo+CdXEtT1mthUSl6TneO/gIyiCwSec8aw2gShr075z2/mMyiiMtSp20Do5auOWZNyMxpobKPlNGoKUJpJ6S196Mfw/MbaMnJkqTqbppKsOHaWw+JbENUMGuDP7Uw3nNOS1n287RfH1XyaY0fi3hec8pEMlmqkf+en1IBmgJOKV0Q6QSYlmVPkQMW7fZcZZv77ySYPZxmPN8pa6+Kz3TVVwXULfxu5oqDh22zvfo7rv/MWVAfDkUcUa1VS14YU3VncpIoDdLMZKtIdnnb2Txx4QgyPsrOm6c5r root@nms-linuxrepo-as-01-p.mkclprod.local"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCajfNUuN4C8Y4ZiqASS/z/1ovXZZbOlBCABIYtoi13jfaVS7UC1a4PWbb64LlOi+cbRzrt5elmdt8bh0X8+P8YfefLIPcpBLggW2QGrReIQzCpbieCq4VVuHW+ERvqKzEIf8mpZw9aLCpoGZTFUcObGz33E2TEXOoKd19YdW2tCepKwqiHApOsYxGydjlemEgHuCnhUMZH+a3EQYkOC3MoG/5iHMT0hKR875QZQdDy7bM6/eSKzKcQjhJ960UqINGG7vln4oHzk0ZNN7mEeFYR70g4JanOmCDg5ui9fdNyfWUYPEYGJgyLJRRd5oFx1FPaAzjeG+OetIuUZryJPk45 adminconsole@IA6-DEVCONSOLE-AS-DB-01-D"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRAyk9kiMCxCa7hJYJCMBRwos2L6JUTqX+35dueKuWeABh/uEVIsdgsuB12Uvsa1b7i+KsTnPfArBObymvw/eMMdzwJgwwHMPTIogydT3Wk7ehc7RM8MLpwrvfDUstcgZwfsDPzNzGokme6jPzrRW50Oz6KWit6eHAcJfdLLK6QW60SCmT4IRF8VDVxSsk8rzC94ou9ybNcZ2Ix9dv/x5Ko54Av/O5GmVxIDXXPnpXDPm28spnEbYLDuZx0cF1W04xGDyZiB6ukqq3rKHTjrNIsaLvUyh6EFgA9yAbGTwy2rgaMVeXvJx2ygRkHdncFJ2Br1a7z4S9eK3ertgJU0fv root@IA6-DEVCONSOLE-AS-DB-01-D"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDLHF7KowpM3HqeDiealsSjvYWfJovnFdDbN1ThKdUcDgA7hYF5edMAYjUR8T9s19YESytOlhvzcH7fgjI1ZNUa8HsFPyvm+XNzLGhsI6oJsIZuqw7ua5Uv1PtvjNSrqtlYkRe3DA9yG+AH4g3Rb9fQCZsuELJgyaGa60fI+kVKS8gKmqJz8BGhYpaP4Onhe6r4uR1kbf4GQm/uUW8hYV6d7Dtwuz1mE9eD+lYWsDacix0P3q+RqPQSSd6MqF0HDvu8TDpujYdd22DRg5F9n5fbcPV57udp5dTQrLJ3AX0J2+eYp9H6ejvblgxyInn0A4uN7yQ/BeG5LGaMw/RLRJi9 adminconsole@IA6-ADMINCONSOLE-AS-01-S"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCn6Ft5AdJFbCMaJj41l7se3165s69j+8glrhhnyH537KQgSG9SU9MFzSzxmfKAdNA19qjkJqNeizgZaVKboa6KCBMtMlEXZ/0XipLUv5vLUGZHpJMLVaQHeKWfpNF8FCbTUv5kiNcKp9wt6/WFBytxB4VMM7LNxIU+hL1aDHqJbTaIOrMcUYHZSLuunUkBHBoDCuTG75lUZDGdcPGsBkkT+FDpGbljn/VOaokj4kKEi98kWZwOVM6IeRdR4EhNOkTmP7NrKk+Zr0bJMJ6ga+qsfN3gBK7SS3gNDbXXLuDp00IZGhkGpTEup8JCYFscBoxkc+wq8aK5jpje7NaDprqZ root@IA6-ADMINCONSOLE-AS-01-S"
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2Vk2Uuv/cQiLlnkXtkyDNUR2ASQzezOFJ/8CN0/nAplmLEG5w47VslpUF+1RrbCuDpfm3rWwiwc82JlxM8I2UbsaKe1RaIK2ydttHDX2KQFRx+IrlxZAnn1OVwX2XxRBorC0yri2xE7d85GHozF+is1LzcCoIK4mBd6zA5kcy5hF5Vn4Dq61kOXJJkLe8YAYk+ea8ZA5LA/Y4rZyLLSHux/YuX3sjOVGryUjPhoJAujqDXUdYl1fJMWIoz9DJIHH8J8P0xsFL6vbgnk4oKKEroyBYBCeG9BbOt54FDAv74acIg6Dv2xt6EGkDsYraa85ODjDM0t5A50QTjy5LrcHJ WW-Ubuntu-Prod"
+    register: output
+    ignore_errors: True
+
+  - name: Run cmd to remove user from group
+    command: gpasswd -d admino sudo
+    ignore_errors: True
+    
+  - name: reload sshd service Above Ubuntu 14
+    systemd:
+      name: ssh
+      daemon_reload: yes
+      state: restarted
+    when: srvversion.stdout > '14'      
+
+  - name: reload sshd service below Ubuntu 16
+    service:
+      name: ssh
+      state: restarted
+    when: srvversion.stdout < '15'
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }} : {{ userinfo }}"
+      path: /root/ansible-files/users.txt 
+      create: yes
+    when: userinfo.changed
+
+    

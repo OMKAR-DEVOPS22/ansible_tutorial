@@ -1,0 +1,12 @@
+---
+- name: Check Disk Space
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Get Disk Space Information
+      shell: df -h | sed 's/  */ /g' | tail -n +2
+      register: disk_space_result
+
+    - name: Display Disk Space Information
+      debug:
+        var: disk_space_result.stdout_lines

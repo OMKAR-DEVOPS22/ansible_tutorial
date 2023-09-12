@@ -1,0 +1,21 @@
+---
+- name: Check disk utilization
+  hosts: all
+
+  tasks:
+
+  - name: Get disk usage
+    shell: |
+      df --output=target,avail -BG | awk 'NR > 1 && $1 ~ /^(\/$|\/data$|\/app$|\/dblogs$|\/datafiles$|\/audit$|\/logs$)/ && substr($2, 1, length($2)-1) + 0 < 7 {print "Partition: " $1 ", Available: " $2}'
+
+    register: disk_utilization
+    
+  - name: Display Partition size
+      debug:
+        var: Partitionsize_result.stdout_lines
+  - name: Log output
+    local_action:
+      module: lineinfile
+      line: "{{ inventory_hostname }} - {{ disk_utilization.stdout_lines }}"  
+      path: /root/ansible-files/check_partition_size_of_server/disksize.txt
+      create: yes

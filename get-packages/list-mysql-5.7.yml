@@ -1,0 +1,37 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Check whether mysql.service available
+    stat:
+      path: /lib/systemd/system/mysql.service
+    check_mode: yes
+    register: filecheck
+
+  - name: get list of listening ports
+    shell: mysql -V
+    args: 
+      executable: /bin/bash
+    register: output
+    ignore_errors: True
+    when: filecheck.stat.exists
+
+#  - name: Debug message
+#    debug:
+#      msg: 
+#        - "{{ inventory_hostname }}"
+#        - "{{ filecheck.stat.exists }}"
+#        - "{{ output.stdout }}"
+#    when: filecheck.stat.exists
+
+  - name: Put in database
+    uri:
+      url: http://10.15.15.86:2379/v2/keys/srv/mysql/{{ inventory_hostname }}
+      method: PUT
+      body: "value={{ output.stdout }}&ttl=14400"
+      status_code: 201
+      return_content: yes
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+    register: curl_out
+    when: filecheck.stat.exists

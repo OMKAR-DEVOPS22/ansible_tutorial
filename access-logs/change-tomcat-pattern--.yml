@@ -1,0 +1,53 @@
+---
+- hosts: 10.15.21.65
+  gather_facts: false
+  tasks:
+  - name: Check whether /app/tomcat/conf/server.xml exists
+    stat:
+      path: /app/{{ item }}/conf/server.xml
+    check_mode: yes
+    #changed_when: false
+    loop:
+      - tomcat
+      - tomcat7
+      - tomcat8
+    register: filecheck
+
+#  - debug:
+#      #msg: "{{ filecheck.results.stat }}"
+#      msg: "{{ item }}"
+#    with_items: "{{ filecheck.results }}"
+#    when: item.stat.exists
+
+#  - debug:
+#      msg: 
+#        - "{{ inventory_hostname }}"
+#        - "{{ item }}"
+#    loop: "{{ filecheck.results }}"
+#    when: item.stat.exists
+#    loop_control:
+#      label: "{{ item.item }}"
+
+  - name: Change logging pattern in /app/tomcat/conf/server.xml file
+    xml:
+      path: "{{ item.stat.path }}"
+      xpath: /Server/Service/Engine/Host/Valve
+      content: attribute
+    register: xmlresp
+    check_mode: yes
+    loop: "{{ filecheck.results }}"
+    when: item.stat.exists
+    loop_control:
+      label: "{{ item.item }}"
+
+  - name: Debug message
+    debug:
+      msg: 
+        - "{{ inventory_hostname }}"
+        - "{{ item.matches|length }}"
+        - "{{ item.matches }}"
+    loop: "{{ xmlresp.results }}"
+    when: '"matches" in item'
+    loop_control:
+      label: "{{ item.item.item }}"
+

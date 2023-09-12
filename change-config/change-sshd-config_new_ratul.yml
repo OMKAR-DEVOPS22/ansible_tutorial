@@ -1,0 +1,26 @@
+---
+- hosts: 10.10.10.106
+  gather_facts: false
+  tasks:
+#  - name: sshd configuration file update
+#    blockinfile:
+#      path: /etc/ssh/sshd_config
+#      insertbefore: BOF # Beginning of the file
+#      marker: "# {mark} ANSIBLE MANAGED BLOCK BY LINUX-ADMIN"
+#      block: |
+#        PermitRootLogin prohibit-password
+
+  - name: Cahnge sshd configuration file
+    replace:
+      path: /etc/ssh/sshd_config
+      regexp: "PermitRootLogin.*"
+      replace: "PermitRootLogin prohibit-password" 
+
+  - name: Run cmd to remove user from group
+    command: gpasswd -d admino sudo
+      
+  - name: reload sshd service
+    systemd:
+      name: ssh
+      daemon_reload: yes
+      state: restarted

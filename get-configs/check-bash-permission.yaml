@@ -1,0 +1,13 @@
+---
+- name: Get users with /bin/bash shell (excluding root)
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Fetch users with /bin/bash shell excluding root
+      shell: "getent passwd | awk -F: '$NF==\"/bin/bash\" && $1!=\"root\" { print $1, $NF }'"
+      register: bash_users
+
+    - name: Display users with /bin/bash shell
+      debug:
+        var: bash_users.stdout_lines

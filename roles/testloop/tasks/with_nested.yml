@@ -1,0 +1,21 @@
+---
+# tasks file for with_nested
+- name: with_nested
+  debug:
+    msg: "{{ item.0 }} - {{ item.1 }}"
+  with_nested:
+    - "{{ list_one }}"
+    - "{{ list_two }}"
+
+- name: with_nested -> loop
+  debug:
+    msg: "{{ item.0 }} - {{ item.1 }}"
+  loop: "{{ list_one|product(list_two)|list }}"
+
+- name: with_nested -> loop
+  debug:
+    msg: "{{ item.0 }} - {{ item.1.value }}"
+  loop: "{{ [1,2]|product(foo_dict|dict2items)|list }}"
+  loop_control:
+    label: "ll"
+#   loop: "{{ users|subelements('authorized') }}"

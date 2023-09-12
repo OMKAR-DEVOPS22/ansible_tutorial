@@ -1,0 +1,21 @@
+---
+- name: check disk utilization more than 70%
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: get disk utilization
+      shell: "df --output=target,pcent | awk '$2 > 70 {print \"Partition: \" $1 \", Percentage: \" $2}'"
+      register: disk_utilization_result
+      changed_when: false
+
+    - name: Display disk utilization
+      debug:
+        var: disk_utilization_result.stdout_lines
+        
+    - local_action:
+        module: lineinfile
+        line: "{{ inventory_hostname }}, {{ disk_utilization_result.stdout }}"
+        path: /root/ansible-files/get-configs/disk_output.txt
+        create: yes
+        

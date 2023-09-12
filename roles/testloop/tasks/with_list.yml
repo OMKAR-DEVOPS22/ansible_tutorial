@@ -1,0 +1,26 @@
+---
+# tasks file for with_list
+- name: with_list -Ex1
+  debug:
+    msg: "{{ item }}"
+  with_list:
+    - one
+    - two
+
+- name: with_list -> loop  -Ex1
+  debug:
+    msg: "{{ item }}"
+  loop:
+    - one
+    - two
+
+- name: with_list  -Ex2
+  debug:
+    msg: "{{ item }}"
+  with_list: 
+    - "{{ list_three }}"
+
+- name: with_list -> loop  -Ex2
+  debug:
+    msg: "{{ item }}"
+  loop: "{{ list_three }}"

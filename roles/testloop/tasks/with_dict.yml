@@ -1,0 +1,16 @@
+---
+# tasks file for with_dict
+- name: with_dict
+  debug:
+    msg: "{{ item.key }} - {{ item.value }}"
+  with_dict: "{{ foo_dict }}"
+
+- name: with_dict -> loop (option 1)
+  debug:
+    msg: "{{ item.key }} - {{ item.value }}"
+  loop: "{{ foo_dict|dict2items }}"
+
+- name: with_dict -> loop (option 2)
+  debug:
+    msg: "{{ item.0 }} - {{ item.1 }}"
+  loop: "{{ foo_dict|dictsort }}"

@@ -1,0 +1,13 @@
+---
+# tasks file for with_subelements
+- name: with_subelements
+  debug:
+    msg: "{{ item.0.name }} - {{ item.1 }}"
+  with_subelements:
+    - "{{ users }}"
+    - mysql.hosts
+
+- name: with_subelements -> loop
+  debug:
+    msg: "{{ item.0.name }} - {{ item.1 }}"
+  loop: "{{ users|subelements('mysql.hosts') }}"

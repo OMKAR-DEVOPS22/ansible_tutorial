@@ -1,0 +1,30 @@
+---
+- name: choose backup file
+  block:
+  - name: restore from original
+    set_fact:
+      backup_file_name: newrelic.yml.orig
+    when: restore_from_original
+  - name: restore from previous
+    set_fact:
+      backup_file_name: newrelic.yml.prev
+    when: not restore_from_original
+
+- name: check if requested backup file exists
+  stat:
+    path: "{{ server_root }}/newrelic/{{ backup_file_name }}"
+  register: newrelic_yml_backup
+  become: true
+
+- name: fail if requested backup file does not exist
+  fail: "Cannot restore from {{ backup_file_name }}: file does not exist"
+  when: not newrelic_yml_backup.stat.exists
+
+- name: restore config
+  copy:
+    src: "{{ server_root }}/newrelic/{{ backup_file_name }}"
+    dest: "{{ server_root }}/newrelic/newrelic.yml"
+    remote_src: true
+  become: true
+  notify:
+    - restart web server

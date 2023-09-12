@@ -1,0 +1,36 @@
+---
+- hosts: 10.139.192.164
+  gather_facts: false
+  tasks:
+    - name: Install a nagios-nrpe-server
+      apt:
+        name: nagios-nrpe-server
+      #when: 
+      #  - ansible_facts['distribution'] == 'Ubuntu'
+      #  - ansible_facts['distribution_version'] is version('18.04', '>=')
+
+    - name: Copy file to nagios
+      copy:
+        src: /opt/nagios/nrpe.cfg
+        dest: /etc/nagios/
+        owner: root
+        group: root
+        mode: '0755'
+      register: script_output
+
+    - name: Extract the plugins
+      unarchive:
+        src: /opt/nagios/plugins.tgz
+        dest: /usr/lib/nagios/
+        owner: root
+        group: root
+        mode: '0755'
+      register: script_output
+
+    - name: Change mode
+      file:
+        path: /usr/lib/nagios/plugins
+        owner: root
+        mode: '0755'
+        recurse: yes
+      register: script_output

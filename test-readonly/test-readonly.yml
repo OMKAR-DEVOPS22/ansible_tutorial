@@ -1,0 +1,27 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Test file system is read only or not
+    file: 
+      path: /tmp/mytestfile
+      state: touch
+    register: output
+    #ignore_errors: True
+#  - name: Put in database
+#    uri:
+#      url: http://10.15.15.86:2379/v2/keys/srv/glassfish/{{ inventory_hostname }}
+#      method: PUT
+#      body: "value={{ output.stdout_lines }}&ttl=3600"
+#      status_code: 201
+#      return_content: yes
+#      headers:
+#        Content-Type: "application/x-www-form-urlencoded"
+#    register: curl_out
+#    ignore_errors: True
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ output.diff }}"
+      path: /tmp/tmptest.txt 
+      create: yes
+

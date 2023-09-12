@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: update sshd file
+    replace:
+      path: /etc/ssh/sshd_config
+      regexp: '^Subsystem(\s+)sftp(\s+)\/usr\/lib\/openssh\/sftp-server.*'
+      replace: 'Subsystem sftp /usr/lib/openssh/sftp-server -l INFO'
+    #check_mode: yes
+  - name: reload sshd service
+    systemd:
+      name: ssh
+      daemon_reload: yes
+      state: restarted

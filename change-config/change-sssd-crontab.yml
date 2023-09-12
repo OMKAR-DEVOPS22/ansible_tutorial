@@ -1,0 +1,24 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: update cron file
+    replace:
+      path: /var/spool/cron/crontabs/root
+      regexp: '.*restart_sssd.*'
+      replace: '{{ 59 |random(seed=inventory_hostname) }} 3 * * *                 bash /root/scripts/restart_sssd.sh                        # LDAP related service.'
+#    check_mode: yes
+
+    register: cront
+  - name: Download file from repo
+    get_url:
+      url: http://10.15.15.86:8080/toconfig/restart_sssd.sh
+      dest: /root/scripts/restart_sssd.sh
+      mode: '0755'
+      force: yes
+    when: cront.changed
+
+#  - debug:
+#      msg: "{{ cront }},
+#            {{ cront }}"
+#    when: cront.changed

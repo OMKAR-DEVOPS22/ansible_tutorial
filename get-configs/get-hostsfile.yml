@@ -1,0 +1,50 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Get hosts file entry
+    shell: grep -E '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' /etc/hosts
+    args: 
+      executable: /bin/bash
+    check_mode: no
+    changed_when: false
+    register: out
+  - name: Put in database
+    uri:
+      url: http://10.15.15.86:2379/v2/keys/hosts/{{ inventory_hostname }}/{{ idx }}
+      method: PUT
+      body: "value={{ item }}&ttl=28800"
+      status_code: 201
+      return_content: yes
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+    loop: "{{ out.stdout_lines }}"
+    loop_control:
+      index_var : idx
+      label: "{{ idx }}"
+    register: curl_out
+    ignore_errors: True
+  - local_action: 
+      module: lineinfile 
+      line: "{{ curl_out }}, {{ inventory_hostname }}"
+      path: /root/ansible-files/ubuntu-hosts-curlout.txt 
+      create: yes
+
+#  - debug:
+#      msg: "{{ idx }} {{ item }}"
+#    loop: "{{ out.stdout_lines }}"
+#    loop_control:
+#      index_var : idx
+#      label: "{{ idx }}"
+
+#  - name: Get hosts file entry
+#    lineinfile:
+#      path: /etc/hosts
+#      regexp: '^10.*'
+#      # regexp: '^(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])) .*'
+#      state: absent
+#    check_mode: yes
+#    changed_when: false
+#    register: out
+#  - debug:
+#      msg: "{{ out }}"

@@ -1,0 +1,217 @@
+---
+- hosts: all
+#- hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Check whether mysql.service available
+    stat:
+      path: /lib/systemd/system/mysql.service
+    check_mode: yes
+    register: filecheck
+
+#  - name: get list of listening ports
+#    shell: mysql -V
+#    args: 
+#      executable: /bin/bash
+#    register: output
+#    ignore_errors: True
+#    when: filecheck.stat.exists
+    
+  - name: Replace lines if not exist
+    replace:
+      path: /lib/systemd/system/mysql.service
+      regexp: "^{{ item.name }}=(.+)$"
+      replace: "{{ item.name }}={{ item.value }}"
+#    check_mode: yes
+    loop:
+    - { name: 'LimitNOFILE', value: '1048576' }
+    - { name: 'OOMScoreAdjust', value: '-1000' }
+    - { name: 'LimitNPROC', value: '50000' }
+    - { name: 'LimitCORE', value: 'infinity' }
+    - { name: 'LimitAS', value: 'infinity' }
+    - { name: 'LimitRSS', value: 'infinity' }
+    - { name: 'TasksMax', value: 'infinity' }
+    register: linereplace
+    when: filecheck.stat.exists
+    
+  - name: Add lines if not exist
+    lineinfile:
+      path: /lib/systemd/system/mysql.service
+      create: yes
+      line: "{{ item.item.name }}={{ item.item.value }}"
+    #check_mode: yes
+    register: filemod
+    loop: "{{ linereplace.results }}"
+    when: item.changed == false
+    loop_control:
+      label: "{{ item.item.name }}"
+    
+
+#   - name: Add LimitNOFILE if not exist
+#     replace:
+#       path: /lib/systemd/system/mysql.service
+#       regexp: "^LimitNOFILE=(.+)$"
+#       replace: "LimitNOFILE=1048576"
+# #    check_mode: yes
+#     register: filemod1
+# 
+#   - name: Add OOMScoreAdjust if not exist
+#     replace:
+#       path: /lib/systemd/system/mysql.service
+#       regexp: "^OOMScoreAdjust=(.+)$"
+#       replace: "OOMScoreAdjust=-1000"
+# #    check_mode: yes
+#     register: filemod2
+# 
+#   - name: Add LimitNPROC if not exist
+#     replace:
+#       path: /lib/systemd/system/mysql.service
+#       regexp: "^LimitNPROC=(.+)$"
+#       replace: "LimitNPROC=50000"
+# #    check_mode: yes
+#     register: filemod3
+# 
+#   - name: Add LimitCORE if not exist
+#     replace:
+#       path: /lib/systemd/system/mysql.service
+#       regexp: "^LimitCORE=(.+)$"
+#       replace: "LimitCORE=infinity"
+# #    check_mode: yes
+#     register: filemod4
+# 
+#   - name: Add LimitAS if not exist
+#     replace:
+#       path: /lib/systemd/system/mysql.service
+#       regexp: "^LimitAS=(.+)$"
+#       replace: "LimitAS=infinity"
+# #    check_mode: yes
+#     register: filemod5
+# 
+#   - name: Add LimitRSS if not exist
+#     replace:
+#       path: /lib/systemd/system/mysql.service
+#       regexp: "^LimitRSS=(.+)$"
+#       replace: "LimitRSS=infinity"
+# #    check_mode: yes
+#     register: filemod6
+# 
+#   - name: Add TasksMax if not exist
+#     replace:
+#       path: /lib/systemd/system/mysql.service
+#       regexp: "^TasksMax=(.+)$"
+#       replace: "TasksMax=infinity"
+# #    check_mode: yes
+#     register: filemod7
+# 
+# 
+# 
+#   - name: Add LimitNOFILE if not exist
+#     lineinfile:
+#       path: /lib/systemd/system/mysql.service
+#       line: "LimitNOFILE=1048576"
+#       create: yes
+# #    check_mode: yes
+#     register: filemod11
+#     when: filemod1.changed == false
+# 
+#   - name: Add OOMScoreAdjust if not exist
+#     lineinfile:
+#       path: /lib/systemd/system/mysql.service
+#       line: "OOMScoreAdjust=-1000"
+#       create: yes
+# #    check_mode: yes
+#     register: filemod22
+#     when: filemod2.changed == false
+# 
+#   - name: Add LimitNPROC if not exist
+#     lineinfile:
+#       path: /lib/systemd/system/mysql.service
+#       line: "LimitNPROC=50000"
+#       create: yes
+#     check_mode: yes
+# #    register: filemod33
+#     when: filemod3.changed == false
+# 
+#   - name: Add LimitCORE if not exist
+#     lineinfile:
+#       path: /lib/systemd/system/mysql.service
+#       line: "LimitCORE=infinity"
+#       create: yes
+# #    check_mode: yes
+#     register: filemod44
+#     when: filemod4.changed == false
+# 
+#   - name: Add LimitAS if not exist
+#     lineinfile:
+#       path: /lib/systemd/system/mysql.service
+#       line: "LimitAS=infinity"
+#       create: yes
+# #    check_mode: yes
+#     register: filemod55
+#     when: filemod5.changed == false
+# 
+#   - name: Add LimitRSS if not exist
+#     lineinfile:
+#       path: /lib/systemd/system/mysql.service
+#       line: "LimitRSS=infinity"
+#       create: yes
+# #    check_mode: yes
+#     register: filemod66
+#     when: filemod6.changed == false
+# 
+#   - name: Add TasksMax if not exist
+#     lineinfile:
+#       path: /lib/systemd/system/mysql.service
+#       line: "TasksMax=infinity"
+#       create: yes
+# #    check_mode: yes
+#     register: filemod77
+#     when: filemod7.changed == false
+
+
+
+#  - name: Debug message
+#    debug:
+#      msg: 
+#        - "{{ item.item.name }}"
+#        - "{{ item.item.value }}"
+#    loop: "{{ linereplace.results }}"
+#    when: item.changed == false
+#    loop_control:
+#      label: "{{ item.item.name }}"
+#    when: (linereplace,changed == True ) or (filemod.changed == True)
+
+#  - name: Debug message
+#    debug:
+#      msg: 
+#        - "{{ inventory_hostname }}"
+#        - "{{ filecheck.stat.exists }}"
+#        - "{{ filemod2 }}"
+#        - "{{ filemod22 }}"
+#        #- "{{ output.stdout }}"
+#    when: filecheck.stat.exists
+#    when: (linereplace.changed == True ) or (filemod.changed == True)
+
+  - name: Reload  systemd
+    shell: systemctl daemon-reload
+    args: 
+      executable: /bin/bash
+    register: output
+    ignore_errors: True
+    when: (linereplace.changed == True ) or (filemod.changed == True)
+    
+
+
+
+
+#  - name: Put in database
+#    uri:
+#      url: http://10.15.15.86:2379/v2/keys/srv/mysql/{{ inventory_hostname }}
+#      method: PUT
+#      body: "value={{ output.stdout }}&ttl=14400"
+#      status_code: 201
+#      return_content: yes
+#      headers:
+#        Content-Type: "application/x-www-form-urlencoded"
+#    register: curl_out
+#    when: filecheck.stat.exists

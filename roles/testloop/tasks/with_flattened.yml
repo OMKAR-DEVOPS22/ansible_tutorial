@@ -1,0 +1,11 @@
+---
+# tasks file for with_flattened
+- name: with_flattened
+  debug:
+    msg: "{{ item }}"
+  with_flattened: "{{ filestocheck }}"
+
+- name: with_flattened -> loop
+  debug:
+    msg: "{{ item }}"
+  loop: "{{ filestocheck|flatten }}"

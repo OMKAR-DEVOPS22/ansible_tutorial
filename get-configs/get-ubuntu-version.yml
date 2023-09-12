@@ -1,0 +1,14 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: get list of listening ports
+    shell: grep RELEASE /etc/lsb-release
+    args: 
+      executable: /bin/bash
+    register: output
+  - local_action: 
+      module: lineinfile 
+      line: "{{ output.stdout_lines[0] }}, {{ inventory_hostname }}"
+      path: /root/ansible-files/ubuntu-version.txt 
+      create: yes

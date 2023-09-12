@@ -1,0 +1,39 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Get tomcat user info
+    getent:
+      database: passwd
+      key: tomcat
+    register: st
+#  - debug:
+#      var: getent_passwd
+#  - debug:
+#      var: getent_passwd['root'][5]
+
+    
+#  - name: check file exists
+#    stat: 
+#      path: /etc/nginx/ssl
+#    register: st
+
+  - name: Put in database
+    uri:
+      url: http://10.15.15.86:2379/v2/keys/tomcat/{{ inventory_hostname }}
+      method: PUT
+      body: "value={{ getent_passwd['tomcat'][5] }}&ttl=14400"
+      status_code: 201
+      return_content: yes
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+    register: curl_out
+    ignore_errors: True
+  
+#  - local_action: 
+#      module: lineinfile 
+#      line: "{{ inventory_hostname }}"
+#      path: /root/ansible-files/ssl-available.txt 
+#      create: yes
+#    when: st.stat.exists
+

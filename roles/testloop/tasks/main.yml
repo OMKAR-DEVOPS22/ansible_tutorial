@@ -1,0 +1,12 @@
+---
+# tasks file for testrole
+#- include_tasks: with_list.yml
+#- include_tasks: with_items.yml
+#- include_tasks: with_indexed_items.yml
+#- include_tasks: with_flattened.yml
+#- include_tasks: with_together.yml
+#- include_tasks: with_dict.yml
+#- include_tasks: with_sequence.yml
+#- include_tasks: with_subelement.yml
+- include_tasks: with_nested.yml
+#- include_tasks: with_random.yml

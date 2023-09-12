@@ -1,0 +1,21 @@
+---
+- hosts: 10.15.21.65
+  gather_facts: false
+  tasks:
+  - name: Download file from repo
+    get_url:
+      url: http://10.15.15.86:8080/toconfig/lxml-4.5.2.tar.gz
+      dest: /tmp/lxml.tar.gz
+      mode: '0755'
+      force: yes
+  - name: install python module
+    pip:
+      name: file:///tmp/lxml.tar.gz
+    #check_mode: yes
+    #changed_when: false
+    register: pipret
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }} {{ pipret }}"
+      path: /root/ansible-files/ans-pipmod.txt 
+      create: yes

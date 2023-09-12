@@ -1,0 +1,17 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Check whether mysql.service available
+    stat:
+      path: /lib/systemd/system/mysql.service
+    check_mode: yes
+    register: filecheck
+  - name: Add lines if not exist
+    lineinfile:
+      path: /etc/nagios/nrpe.cfg
+      create: yes
+      line: "thiis new line"
+      state: present
+    #check_mode: yes
+    register: filemod

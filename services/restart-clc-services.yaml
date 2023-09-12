@@ -1,0 +1,13 @@
+---
+- hosts: all 
+  gather_facts: false
+  tasks:
+  - name: restart CLC services
+    systemd:
+      state: restarted
+      name: "{{ item }}"
+    loop:
+      - CollegeLifeCycleapi.service
+      - CollegeFeeAPI.service
+      - RepositoryAPI.service
+

@@ -1,0 +1,14 @@
+---
+# tasks file for with_indexed_items
+- name: with_indexed_items
+  debug:
+    #msg: "{{ item }}"
+    msg: "{{ item.0 }} - {{ item.1 }}"
+  with_indexed_items: list_three
+
+- name: with_indexed_items -> loop
+  debug:
+    msg: "{{ index }} - {{ item }}"
+  loop: "{{ list_three|flatten(levels=1) }}"
+  loop_control:
+    index_var: index

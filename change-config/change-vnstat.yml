@@ -1,0 +1,25 @@
+---
+- hosts: all 
+  gather_facts: false
+  tasks:
+#  - setup:
+#      filter: ansible_distribution*
+  - name: update timesync file
+    replace:
+      path: /etc/vnstat.conf
+      regexp: "^MaxBandwidth 100$"
+      replace: "MaxBandwidth 1000"
+    check_mode: yes
+    register: fileupdate
+#    when: ansible_distribution_major_version > '14'
+  - name: Debug message
+    debug:
+      msg: 
+        - "{{ inventory_hostname }}"
+        - "{{ fileupdate }}"
+#    loop: "{{ xmlresp.results }}"
+#    when: '"matches" in item'
+#    loop_control:
+#      label: "{{ item.item.item }}"
+
+  

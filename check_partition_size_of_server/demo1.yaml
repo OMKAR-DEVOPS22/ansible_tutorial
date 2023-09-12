@@ -1,0 +1,13 @@
+---
+- hosts: all
+  tasks:
+    - name: Output disk information
+      debug:
+        var: hostvars[inventory_hostname].ansible_devices
+    
+    - name: Display disk space
+      debug:
+        var: disk_space_info.stdout_lines
+
+
+

@@ -1,0 +1,28 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Check mysqld file exists
+    stat: 
+      path: /usr/sbin/mysqld
+    register: st
+  - name: Put in database if mysql-server is installed
+    uri:
+      url: http://10.15.15.86:2379/v2/keys/mysqlsrv/{{ inventory_hostname }}
+      method: PUT
+      body: "value={{ item.value[0]['version'] }}&ttl=7200"
+      status_code: 201
+      return_content: yes
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+    when: st.stat.exists
+    ignore_errors: True
+    #when: "'mysql-server' in item.key"
+    #loop: "{{ ansible_facts.packages | dict2items }}"
+#  - name: test_package
+#    debug: 
+#      msg: "{{ inventory_hostname }}, {{ item.value[0]['version'] }}"
+##      msg: "{{ inventory_hostname }}, {{ ansible_facts | json_query('packages.mysql-server-[*].name') }}"
+##      msg: "{{ inventory_hostname }}, {{ ansible_facts.packages['mysql-server'][0]['version'] }}"
+#    when: "'mysql-server' in item.key"
+#    loop: "{{ ansible_facts.packages | dict2items }}"

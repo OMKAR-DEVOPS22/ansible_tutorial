@@ -1,0 +1,52 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+#  - setup:
+#      filter: ansible_distribution*
+  - name: get list of listening ports
+    shell:   lsb_release -rs | cut -d'.' -f1
+    args: 
+      executable: /bin/bash
+    register: srvversion
+
+#  - name: Make a copy of security repos
+#    shell: cat /etc/apt/sources.list|grep secu >/etc/apt/security.sources.list
+#    args: 
+#      executable: /bin/bash
+#    when: ansible_distribution_major_version > '12'
+#    when: srvversion.stdout > '12'
+#
+#  - name: Update cache
+#    apt: 
+#      update_cache: yes
+#    when: ansible_distribution_major_version > '12'
+
+  - name: Install security updates
+    shell: apt upgrade -oDir::Etc::SourceList=/etc/apt/security.sources.list  -o Dpkg::Options::=--force-confold -o Dpkg::Options::=--force-confdef -y
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+    args: 
+      executable: /bin/bash 
+    when: srvversion.stdout > '12'
+
+  - name: Get number of updates
+    shell: /usr/lib/update-notifier/apt-check --human-readable
+    args: 
+      executable: /bin/bash
+    register: output
+    ignore_errors: True
+    when: srvversion.stdout > '12'
+
+  - name: Put in database
+    uri:
+      url: http://10.15.15.86:2379/v2/keys/repo/{{ inventory_hostname }}
+      method: PUT
+      body: "value={{ output.stdout }}&ttl=84000"
+      status_code: 201
+      return_content: yes
+      headers:
+        Content-Type: "application/x-www-form-urlencoded"
+    register: curl_out
+    ignore_errors: True
+    when: srvversion.stdout > '12'

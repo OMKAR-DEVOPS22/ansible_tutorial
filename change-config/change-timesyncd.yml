@@ -1,0 +1,18 @@
+---
+- hosts: 10.10.10.109 
+  gather_facts: false
+  tasks:
+  - setup:
+      filter: ansible_distribution*
+  - name: update timesync file
+    replace:
+      path: /etc/systemd/timesyncd.conf
+      regexp: "#NTP="
+      replace: "NTP=10.10.10.86"
+    when: ansible_distribution_major_version > '14'
+  - name: reload timesyc service
+    systemd:
+      name: systemd-timesyncd
+      daemon_reload: yes
+      state: restarted
+    when: ansible_distribution_major_version > '14'

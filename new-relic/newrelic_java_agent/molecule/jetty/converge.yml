@@ -1,0 +1,20 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include newrelic-java-agent"
+      include_role:
+        name: "newrelic-java-agent-ansible-role"
+      vars:
+        nr_java_agent_config:
+          license_key: YOUR_LICENSE_KEY
+          app_name: Jetty Molecule test
+          collector_host: localhost
+
+        server_type: jetty
+        server_root: /usr/share/jetty9
+        jvm_conf_file: /etc/default/jetty9
+        server_user: jetty
+        server_group: adm
+        service_name: jetty9
+        restart_web_server: true

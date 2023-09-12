@@ -1,0 +1,35 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: get ubuntu version
+    shell:   lsb_release -rs | cut -d'.' -f1
+    args: 
+      executable: /bin/bash
+    register: ub_ver
+  - name: Find my files
+    find:
+      paths: /var/www/toconfig
+      patterns: 
+      - "^mysql.*-py3\\.py$"
+      # - "^mysql.*\.py"
+      file_type: file
+      use_regex: yes
+    register: output
+    #when: ub_ver.stdout > '14'
+  - name: Debug message
+    debug:
+      msg: 
+        - "{{ inventory_hostname }}"
+        - "Output files count {{ output.files|length }}"
+        - "Matched files: {{ output.matched }}"
+    #when: ub_ver.stdout > '14'
+  - name: Debug message1
+    debug:
+      msg: 
+        - "{{ item.path }}"
+    loop: "{{ output.files }}"
+    loop_control: 
+      label: "{{ item.path }}"
+      extended: true
+    #when: ub_ver.stdout > '14'

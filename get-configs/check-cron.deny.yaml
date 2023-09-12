@@ -1,0 +1,42 @@
+#This playbook will check if the cron.deny is present on the server 
+---
+- hosts: all
+  name: Check if the cron file is present and copy that file
+  gather_facts: false
+
+  tasks:
+  - name: Check whether file is present
+    stat:
+      path: /etc/cron.deny
+    check_mode: yes
+    register: filecheck
+
+  - name: Print if the file is present
+    debug: 
+      msg: "The file is present on the server"
+    when: filecheck.stat.exists
+    
+  - name: Print if the file is not present
+    debug: 
+      msg: "The file is not present on the server"
+    when: not filecheck.stat.exists
+  
+  - name: copy the file if not present
+    copy: 
+      src: /root/ansible-files/get-configs/cron.deny
+      dest: /etc/cron.deny
+    when: not filecheck.stat.exists
+    notify: restart crontab service
+    
+  - name: print output
+    lineinfile:
+      line: "{{ inventory_hostname }}, {{ 'File Exists' if filecheck.stat.exists else 'File Does Not Exist'  }}"
+      path: /root/ansible-files/get-configs/cron.deny.txt      
+      create: yes
+  
+  handlers:  
+  - name: restart crontab service
+    service:
+      name: cron
+      state: restarted
+  

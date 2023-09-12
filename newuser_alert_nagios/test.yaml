@@ -1,0 +1,37 @@
+---
+- name: Configure Nagios User and Cron Job
+  hosts: all
+  become: yes
+  tasks:
+    - name: Copy user_create directory
+      ansible.builtin.copy:
+        src: /mnt/user_create 
+        dest: /usr/lib/nagios/plugins/
+      become: yes
+      become_user: root
+
+    - name: Set permissions for user_create directory
+      ansible.builtin.file:
+        path: /usr/lib/nagios/plugins/user_create
+        recurse: yes
+        mode: '0777'
+      become: yes
+      become_user: root
+
+    - name: Extract usernames from /etc/passwd
+      shell: cat /etc/passwd | cut -f 1 -d ":" > /usr/lib/nagios/plugins/user_create/old_user.txt
+      become: yes
+      become_user: root
+
+    - name: Add Cron Job
+      cron:
+        name: Run text_rename.sh
+        minute: "1"
+        hour: "12"
+        user: root
+        job: /usr/lib/nagios/plugins/user_create/text_rename.sh
+    
+	- name: add line in /etc/nagios/nrpe.cfg
+	  shell: echo "command[new_user]=/usr/lib/nagios/plugins/user_create/check_user_creation.sh" >> /etc/nagios/nrpe.cfg
+	  become: yes
+	  become_user: root

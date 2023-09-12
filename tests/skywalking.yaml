@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Check if folder exists
+      stat:
+        path: "/app/tomcat/skywalking"
+      register: folder_stats
+
+    - name: Delete folder contents
+      file:
+        path: "/app/tomcat/skywalking/"
+        state: absent
+      when: folder_stats.stat.exists

@@ -1,0 +1,12 @@
+---
+# tasks file for with_sequence
+- name: with_sequence
+  debug:
+    msg: "{{ item }}"
+  with_sequence: start=0 end=4 stride=2 format=testuser%02x
+
+- name: with_sequence -> loop
+  debug:
+    msg: "{{ 'testuser%02x' | format(item) }}"
+  # range is exclusive of the end point
+  loop: "{{ range(0, 4 + 1, 2)|list }}"

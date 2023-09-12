@@ -1,0 +1,55 @@
+---
+- hosts: all
+  gather_facts: false
+  vars:
+    nagios_conf: /etc/nagios/nrpe.cfg
+    nagios_service: nagios-nrpe-server
+  tasks:
+  - name: get list of listening ports
+    shell:   lsb_release -rs | cut -d'.' -f1
+    args: 
+      executable: /bin/bash
+    register: srvversion
+
+  - name: Check nagios config file
+    stat:
+      path: "{{ nagios_conf }}"
+    register: nagios_stat
+    check_mode: yes
+    
+  - name: Take backup of nagios config file
+    copy:
+      src: "{{ nagios_conf }}"
+      dest: /etc/nagios/nrpe.cfg.bak
+      remote_src : true
+    register: nagios
+    when: nagios_stat.stat.exists
+    #check_mode: yes
+
+  - name: update nagios config file
+    replace:
+      path: "{{ nagios_conf }}"
+      regexp: '^allowed_hosts=.*'
+      replace: 'allowed_hosts=127.0.0.1,10.2.10.98,10.15.15.220,10.15.21.76'
+    register: nagios
+    when: nagios_stat.stat.exists
+    #check_mode: yes
+
+  - name: restart service =< ubuntu 14
+    service:
+      name: "{{ nagios_service }}"
+      state: restarted
+    when: srvversion.stdout < '15' and nagios_stat.stat.exists
+
+  - name: restart service
+    systemd:
+      name: "{{ nagios_service }}"
+      state: restarted
+    when: srvversion.stdout > '15' and  nagios_stat.stat.exists
+
+
+
+#  - debug:
+#      msg: "{{ cront }},
+#            {{ cront }}"
+#    when: cront.changed

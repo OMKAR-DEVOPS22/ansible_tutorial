@@ -1,0 +1,33 @@
+---
+- hosts: all
+  gather_facts: false
+  vars:
+    nagios_conf: /etc/nagios/nrpe.cfg
+  tasks:
+  - name: update nagios config file
+    stat:
+      path: "{{ nagios_conf }}"
+    register: nagios
+    check_mode: yes
+
+  - name: Get nagios config file
+    shell: grep allowed_hosts "{{ nagios_conf }}"
+    args: 
+      executable: /bin/bash
+    register: allowed_hosts
+    when: nagios.stat.exists
+    #check_mode: yes
+
+#  - name: update nagios config file
+#    lineinfile:
+#      path: /etc/nagios/nrpe.cfg
+#      regexp: '^allowed_hosts=.*'
+#      line: '123'
+#    register: allowed_hosts
+#    check_mode: yes
+#    when: nagios.stat.exists
+
+  - debug:
+      msg: " {{ inventory_hostname }} --- {{ allowed_hosts.stdout }}"
+    when: nagios.stat.exists
+

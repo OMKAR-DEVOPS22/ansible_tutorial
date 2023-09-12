@@ -1,0 +1,41 @@
+---
+- name: Get users with /bin/bash shell (excluding root) and change permission
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: take backup of passwd
+      copy:
+        src: /etc/passwd
+        dest: /root
+    
+    - name: remove permission of user
+      command: usermod -s /usr/sbin/nologin {{item}}
+      with_items:
+        - admino
+        - test
+        - tomcat
+        - adminconsole
+        - backupguru
+        - glassfish
+        - loguser
+        - admin
+        - bashuser
+        - app
+        - postgres
+        - gitlab-runner
+        - oes
+        - rouser
+        - eradev
+        - dev
+        - mkclproduction
+      ignore_errors: yes
+      #when: item in ansible_facts.users | map(attribute='name')
+
+    - name: Fetch users with /bin/bash shell excluding root
+      shell: "getent passwd | awk -F: '$NF==\"/bin/bash\" && $1!=\"root\" { print $1, $NF }'"
+      register: bash_users
+
+    - name: Display users with /bin/bash shell
+      debug:
+        var: bash_users.stdout_lines

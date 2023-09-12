@@ -1,0 +1,30 @@
+---
+- hosts: 10.10.10.106
+  gather_facts: false
+  tasks:
+  - name: Ensure group "beoper" exists
+    group:
+      name: beoper
+      state: present
+
+  - name: Create user
+    user:
+      name: backupgurutest
+      password: "$6$mysecretsalt$H3rA1.6WTqjsuLocMliHwnm8/RA4Slbsc38ZxiB0UXPifhfwuMio2zksHkhw5VPtpmYIeHbXpWzRGFAV4tDEg1"
+      expires: -1
+      shell: /bin/bash
+      groups: beoper
+      append: yes
+    register: userinfo
+
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }} : {{ userinfo }}"
+      path: /root/ansible-files/users.txt 
+      create: yes
+    when: userinfo.changed
+
+    # - debug:
+    #   msg: "{{ tzinfo }},
+    #         {{ tzinfo.diff.before.name }}"
+    # when: tzinfo.changed

@@ -1,0 +1,38 @@
+---
+- name: Check if MySQL service is installed
+  hosts: all
+  gather_facts: no
+  
+  vars:
+    mypath: /etc/mysql/
+    mypattern: "*.cnf"
+
+  tasks:
+    - name: Check if MySQL service is present
+      systemd:
+        name: mysql.service
+        state: started
+        enabled: no
+      register: mysql_service
+
+    - name: Search for .cnf files
+      find:
+        paths: "{{ mypath }}"
+        recurse: true
+        patterns: "{{ mypattern }}"
+        size: 3k
+      register: found
+      when: mysql_service.changed or mysql_service.failed
+
+    - name: Check for binlog_format configuration
+      shell: grep '^binlog_format' "{{ item.path }}"
+      loop: "{{ found.files }}"
+      check_mode: no
+      register: out
+      ignore_errors: true
+
+    - name: Display MySQL configuration lines
+      debug:
+        msg: "{{ item.stdout }}"
+      loop: "{{ out.results }}"
+      when: mysql_service.changed or mysql_service.failed

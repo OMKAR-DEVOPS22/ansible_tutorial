@@ -1,0 +1,17 @@
+- hosts: 10.10.20.203
+  vars:
+    nr_java_agent_config:
+      license_key: b18fffc844e0a090a1007c8e931f72445303NRAL
+      app_name: WW-OESINTERNATIONAL-AS-02-P
+
+    server_type: tomcat
+    server_root: /app/tomcat
+    jvm_conf_file: /usr/share/tomcat8/bin/setenv.sh
+    server_user: tomcat
+    server_group: tomcat
+    service_name: tomcat
+    restart_web_server: true
+
+  tasks:
+   - include_role:
+       name: newrelic_java_agent

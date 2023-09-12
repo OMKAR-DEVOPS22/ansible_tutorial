@@ -1,0 +1,20 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - setup:
+      filter: ansible_distribution*
+  - name: get list of listening ports
+    shell: netstat -tunlp | grep mysql
+    args: 
+      executable: /bin/bash
+    register: output
+    ignore_errors: True
+    when: ansible_distribution_major_version == '18'
+  - local_action: 
+      module: lineinfile 
+      line: "{{ inventory_hostname }}, {{ output.stdout_lines }}"
+      path: /root/ansible-files/mysql-ub18.txt 
+      create: yes
+    when: ansible_distribution_major_version == '18'
+

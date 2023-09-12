@@ -1,0 +1,54 @@
+---
+# vars file for testrole
+list_one: [1,2,3,4]
+list_two: [9,8]
+
+list_three:
+  - 1
+  - 2
+  - - 3
+    - 4
+
+filestocheck:
+  - apt
+  - [awk, gawk]
+  - [ping, arp]
+  - wget
+  
+foo_dict:
+  field1: one
+  field2: two
+  field3: three
+  field4: four
+
+  
+  
+users:
+  - name: alice
+    authorized:
+      - /tmp/alice/onekey.pub
+      - /tmp/alice/twokey.pub
+    mysql:
+        password: mysql-password
+        hosts:
+          - "%"
+          - "127.0.0.1"
+          - "::1"
+          - "localhost"
+        privs:
+          - "*.*:SELECT"
+          - "DB1.*:ALL"
+    groups:
+      - wheel
+  - name: bob
+    authorized:
+      - /tmp/bob/id_rsa.pub
+    mysql:
+        password: other-mysql-password
+        hosts:
+          - "db1"
+        privs:
+          - "*.*:SELECT"
+          - "DB2.*:ALL"
+
+

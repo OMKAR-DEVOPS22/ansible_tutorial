@@ -1,0 +1,22 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - setup:
+      filter: ansible_distribution*
+  - name: Install lxml for python2.7
+    apt: 
+      update_cache: yes
+      name: python-lxml
+      state: present
+      force: yes
+    when: ansible_distribution_major_version == '12'
+  - name: Install lxml for both python2.7 and 3
+    apt: 
+      update_cache: yes
+      name: 
+      - python-lxml 
+      - python3-lxml
+      state: present
+      force: yes
+    when: ansible_distribution_major_version > '12'

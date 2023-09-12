@@ -1,0 +1,19 @@
+#This playbook will check if mysql is present on the server and enable mysql service to start on boot
+---
+- hosts: all
+  name: Check mysql service is enabled or not
+  gather_facts: false
+
+  tasks:
+  - name: Check whether mysql.service available
+    stat:
+      path: /lib/systemd/system/mysql.service
+    check_mode: yes
+    register: filecheck
+
+  - name: Check mysql is enabled
+    systemd:
+      name: mysql.service
+      state: started
+      enabled: true
+    when: filecheck.stat.exists

@@ -1,0 +1,23 @@
+---
+- name: Check Partitions for /app and /data
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Get Partition Information
+      shell: df -h
+      register: df_output
+      become: yes
+
+    - name: Parse Partition Information
+      ansible.builtin.set_fact:
+        partitions: "{{ df_output.stdout_lines[1:] }}"
+      delegate_to: localhost
+
+    - name: Filter /app and /data Partitions
+      ansible.builtin.set_fact:
+        filtered_partitions: "{{ partitions | select('search', '/') | select('search', '/data') | list }}"
+
+    - name: Display Partition Information for /app and /data
+      debug:
+        var: item
+      with_items: "{{ filtered_partitions }}"

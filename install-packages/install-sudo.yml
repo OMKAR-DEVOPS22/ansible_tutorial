@@ -1,0 +1,21 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - setup:
+      filter: ansible_distribution*
+  - name: Install sudo
+    apt: 
+      update_cache: yes
+      name: sudo
+      state: present
+      force: yes
+    when: ansible_distribution_major_version > '12'
+  - name: install sudo package
+    shell: apt install -f -y sudo
+    args: 
+      executable: /bin/bash
+    check_mode: no
+    changed_when: false
+    register: out
+    when: ansible_distribution_major_version > '14'
